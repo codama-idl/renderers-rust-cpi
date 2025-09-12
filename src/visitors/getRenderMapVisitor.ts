@@ -1,4 +1,4 @@
-import { camelCase } from '@codama/nodes';
+import { getAllInstructionsWithSubs, getAllPrograms, snakeCase } from '@codama/nodes';
 import { createRenderMap, mergeRenderMaps } from '@codama/renderers-core';
 import {
     extendVisitor,
@@ -12,76 +12,72 @@ import {
     visit,
 } from '@codama/visitors-core';
 
-import {
-    getAccountPageFragment,
-    getDefinedTypePageFragment,
-    getInstructionPageFragment,
-    getPdaPageFragment,
-    getProgramPageFragment,
-} from '../fragments';
-import { RenderMapOptions } from '../utils';
-import { getTypeVisitor } from './getTypeVisitor';
-import { getValueVisitor } from './getValueVisitor';
+import { getInstructionPageFragment, getProgramModPageFragment, getRootModPageFragment } from '../fragments';
+import { getInstructionModPageFragment } from '../fragments/instructionModPage';
+import { getImportFromFactory, GetRenderMapOptions, getTraitsFromNodeFactory, RenderScope } from '../utils';
+import { getTypeManifestVisitor } from './getTypeManifestVisitor';
 
-export function getRenderMapVisitor(options: RenderMapOptions = {}) {
+export function getRenderMapVisitor(options: GetRenderMapOptions = {}) {
     const linkables = new LinkableDictionary();
     const stack = new NodeStack();
 
-    const extension = options.extension ?? 'md';
-    const indexFilename = options.indexFilename ?? 'README';
-    const typeVisitor = getTypeVisitor({ stack, typeIndent: options.typeIndent });
-    const valueVisitor = getValueVisitor({ stack });
+    const renderParentInstructions = options.renderParentInstructions ?? false;
+    const dependencyMap = options.dependencyMap ?? {};
+    const getImportFrom = getImportFromFactory(options.linkOverrides ?? {});
+    const getTraitsFromNode = getTraitsFromNodeFactory(options.traitOptions);
+    const typeManifestVisitor = getTypeManifestVisitor({ getImportFrom, getTraitsFromNode });
     const byteSizeVisitor = getByteSizeVisitor(linkables, { stack });
+
+    const renderScope: RenderScope = {
+        byteSizeVisitor,
+        dependencyMap,
+        getImportFrom,
+        getTraitsFromNode,
+        linkables,
+        renderParentInstructions,
+        typeManifestVisitor,
+    };
 
     return pipe(
         staticVisitor(() => createRenderMap(), {
-            keys: ['rootNode', 'programNode', 'pdaNode', 'accountNode', 'definedTypeNode', 'instructionNode'],
+            keys: ['rootNode', 'programNode', 'instructionNode', 'accountNode', 'definedTypeNode'],
         }),
         v =>
             extendVisitor(v, {
-                visitAccount(node) {
-                    const pda = node.pda ? linkables.get([...stack.getPath(), node.pda]) : undefined;
-                    const size = visit(node, byteSizeVisitor);
-                    return createRenderMap(
-                        `accounts/${camelCase(node.name)}.${extension}`,
-                        getAccountPageFragment(node, typeVisitor, size ?? undefined, pda),
-                    );
-                },
-
-                visitDefinedType(node) {
-                    return createRenderMap(
-                        `definedTypes/${camelCase(node.name)}.${extension}`,
-                        getDefinedTypePageFragment(node, typeVisitor),
-                    );
-                },
-
                 visitInstruction(node) {
+                    const instructionPath = stack.getPath('instructionNode');
                     return createRenderMap(
-                        `instructions/${camelCase(node.name)}.${extension}`,
-                        getInstructionPageFragment(node, typeVisitor),
-                    );
-                },
-
-                visitPda(node) {
-                    return createRenderMap(
-                        `pdas/${camelCase(node.name)}.${extension}`,
-                        getPdaPageFragment(node, typeVisitor, valueVisitor),
+                        `instructions/${snakeCase(node.name)}.rs`,
+                        getInstructionPageFragment({ ...renderScope, instructionPath }),
                     );
                 },
 
                 visitProgram(node, { self }) {
                     return mergeRenderMaps([
-                        createRenderMap(`${indexFilename}.${extension}`, getProgramPageFragment(node)),
-                        ...node.accounts.map(n => visit(n, self)),
-                        ...node.definedTypes.map(n => visit(n, self)),
-                        ...node.instructions.map(n => visit(n, self)),
-                        ...node.pdas.map(n => visit(n, self)),
+                        ...getAllInstructionsWithSubs(node, {
+                            leavesOnly: !renderParentInstructions,
+                        }).map(ix => visit(ix, self)),
                     ]);
                 },
 
                 visitRoot(node, { self }) {
-                    // Here, we ignore `node.additionalPrograms` for simplicity.
-                    return visit(node.program, self);
+                    const programsToExport = getAllPrograms(node);
+                    const instructionsToExport = getAllInstructionsWithSubs(node, {
+                        leavesOnly: !renderParentInstructions,
+                    });
+                    const scope = { ...renderScope, instructionsToExport, programsToExport };
+
+                    return mergeRenderMaps([
+                        createRenderMap({
+                            ['instructions/mod.rs']: getInstructionModPageFragment({
+                                ...renderScope,
+                                instructions: instructionsToExport,
+                            }),
+                            ['mod.rs']: getRootModPageFragment(scope),
+                            ['programs/mod.rs']: getProgramModPageFragment(scope),
+                        }),
+                        ...programsToExport.map(p => visit(p, self)),
+                    ]);
                 },
             }),
         v => recordNodeStackVisitor(v, stack),

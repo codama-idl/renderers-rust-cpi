@@ -37,12 +37,9 @@
                             "kind": "structFieldTypeNode",
                             "name": "lamportsPerSignature",
                             "type": {
-                                "kind": "solAmountTypeNode",
-                                "number": {
-                                    "kind": "numberTypeNode",
-                                    "format": "u64",
-                                    "endian": "le"
-                                }
+                                "kind": "numberTypeNode",
+                                "format": "u64",
+                                "endian": "le"
                             },
                             "docs": []
                         }
@@ -93,12 +90,9 @@
                         "kind": "instructionArgumentNode",
                         "name": "lamports",
                         "type": {
-                            "kind": "solAmountTypeNode",
-                            "number": {
-                                "kind": "numberTypeNode",
-                                "format": "u64",
-                                "endian": "le"
-                            }
+                            "kind": "numberTypeNode",
+                            "format": "u64",
+                            "endian": "le"
                         },
                         "docs": []
                     },
@@ -1044,5 +1038,5 @@
     },
     "additionalPrograms": [],
     "standard": "codama",
-    "version": "1.0.0"
+    "version": "0.20.0"
 }

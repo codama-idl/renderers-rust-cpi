@@ -1,48 +1,77 @@
-import { camelCase } from '@codama/nodes';
-import { joinPath, Path } from '@codama/renderers-core';
+const DEFAULT_MODULE_MAP: Record<string, string> = {
+    generated: 'crate::generated',
+    generatedAccounts: 'crate::generated::accounts',
+    generatedErrors: 'crate::generated::errors',
+    generatedInstructions: 'crate::generated::instructions',
+    generatedTypes: 'crate::generated::types',
+    hooked: 'crate::hooked',
+    mplEssentials: 'mpl_toolbox',
+    mplToolbox: 'mpl_toolbox',
+};
 
-export type ImportMap = ReadonlyMap<Path, ReadonlySet<string>>;
+export class ImportMap {
+    protected readonly _imports: Set<string> = new Set();
 
-export function createImportMap(imports: [Path, string[] | string][] = []): ImportMap {
-    return Object.freeze(
-        new Map(imports.map(([path, names]) => [path, new Set(typeof names === 'string' ? [names] : names)])),
-    );
-}
+    protected readonly _aliases: Map<string, string> = new Map();
 
-export function addToImportMap(map: ImportMap, path: Path, names: string[] | string): ImportMap {
-    return mergeImportMaps([map, createImportMap([[path, names]])]);
-}
-
-export function mergeImportMaps(importMaps: ImportMap[]): ImportMap {
-    const merged = new Map(importMaps[0]);
-    for (const map of importMaps.slice(1)) {
-        for (const [key, value] of map) {
-            merged.set(key, new Set([...(merged.get(key) ?? []), ...value]));
-        }
+    get imports(): Set<string> {
+        return this._imports;
     }
-    return Object.freeze(merged);
-}
 
-export type PathOverrides = Record<Path, Path>;
+    get aliases(): Map<string, string> {
+        return this._aliases;
+    }
 
-export function getImportMapLinks(importMap: ImportMap, pathOverrides: PathOverrides = {}): string[] {
-    return [...resolvePaths(importMap, pathOverrides).entries()].flatMap(([path, names]) =>
-        [...names].map(name => `- [${name}](${joinPath(path, camelCase(name))}.md)`),
-    );
-}
+    add(imports: Set<string> | string[] | string): ImportMap {
+        const newImports = typeof imports === 'string' ? [imports] : imports;
+        newImports.forEach(i => this._imports.add(i));
+        return this;
+    }
 
-function resolvePaths(importMap: ImportMap, pathOverrides: PathOverrides = {}): ImportMap {
-    const DEFAULT_PATH_OVERRIDES: PathOverrides = {
-        generatedAccounts: joinPath('..', 'accounts'),
-        generatedInstructions: joinPath('..', 'instructions'),
-        generatedPdas: joinPath('..', 'pdas'),
-        generatedTypes: joinPath('..', 'types'),
-    };
+    remove(imports: Set<string> | string[] | string): ImportMap {
+        const importsToRemove = typeof imports === 'string' ? [imports] : imports;
+        importsToRemove.forEach(i => this._imports.delete(i));
+        return this;
+    }
 
-    pathOverrides = { ...DEFAULT_PATH_OVERRIDES, ...pathOverrides };
-    const newEntries = [...importMap.entries()].map(([path, names]) => {
-        return [pathOverrides[path] ?? path, names] as const;
-    });
+    mergeWith(...others: ImportMap[]): ImportMap {
+        others.forEach(other => {
+            this.add(other._imports);
+            other._aliases.forEach((alias, importName) => this.addAlias(importName, alias));
+        });
+        return this;
+    }
 
-    return Object.freeze(new Map(newEntries));
+    addAlias(importName: string, alias: string): ImportMap {
+        this._aliases.set(importName, alias);
+        return this;
+    }
+
+    isEmpty(): boolean {
+        return this._imports.size === 0;
+    }
+
+    resolveDependencyMap(dependencies: Record<string, string>): ImportMap {
+        const dependencyMap = { ...DEFAULT_MODULE_MAP, ...dependencies };
+        const newImportMap = new ImportMap();
+        const resolveDependency = (i: string): string => {
+            const dependencyKey = Object.keys(dependencyMap).find(key => i.startsWith(`${key}::`));
+            if (!dependencyKey) return i;
+            const dependencyValue = dependencyMap[dependencyKey];
+            return dependencyValue + i.slice(dependencyKey.length);
+        };
+        this._imports.forEach(i => newImportMap.add(resolveDependency(i)));
+        this._aliases.forEach((alias, i) => newImportMap.addAlias(resolveDependency(i), alias));
+        return newImportMap;
+    }
+
+    toString(dependencies: Record<string, string>): string {
+        const resolvedMap = this.resolveDependencyMap(dependencies);
+        const importStatements = [...resolvedMap.imports].map(i => {
+            const alias = resolvedMap.aliases.get(i);
+            if (alias) return `use ${i} as ${alias};`;
+            return `use ${i};`;
+        });
+        return importStatements.join('\n');
+    }
 }

@@ -1,4 +1,5 @@
+export * from './getInstructionArgumentAssignmentVisitor';
 export * from './getRenderMapVisitor';
-export * from './getTypeVisitor';
-export * from './getValueVisitor';
+export * from './getTypeManifestVisitor';
+export * from './renderValueNodeVisitor';
 export * from './renderVisitor';

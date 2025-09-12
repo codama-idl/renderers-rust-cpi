@@ -1,7 +1,7 @@
 {
-    "name": "@codama/renderers-demo",
-    "version": "1.0.3",
-    "description": "Demo renderer to help creating new ones",
+    "name": "@codama/renderers-rust-cpi",
+    "version": "0.1.0",
+    "description": "Renders CPI clients for your programs",
     "exports": {
         "types": "./dist/types/index.d.ts",
         "react-native": "./dist/index.react-native.mjs",
@@ -33,7 +33,8 @@
         "framework",
         "standard",
         "renderers",
-        "demo"
+        "rust",
+        "client"
     ],
     "scripts": {
         "build": "rimraf dist && tsup && tsc -p ./tsconfig.declarations.json",
@@ -49,14 +50,13 @@
         "test:unit": "vitest run"
     },
     "dependencies": {
-        "@codama/errors": "^1.3.5",
-        "@codama/nodes": "^1.3.5",
-        "@codama/renderers-core": "^1.2.0",
-        "@codama/visitors-core": "^1.3.5",
-        "@solana/codecs": "^3.0.3"
+        "@codama/errors": "^1.3.6",
+        "@codama/nodes": "^1.3.6",
+        "@codama/renderers-core": "^1.2.1",
+        "@codama/visitors-core": "^1.3.6",
+        "@solana/codecs-strings": "^3.0.2"
     },
     "devDependencies": {
-        "@codama/cli": "^1.3.3",
         "@changesets/changelog-github": "^0.5.1",
         "@changesets/cli": "^2.29.7",
         "@solana/eslint-config-solana": "^5.0.0",
@@ -74,10 +74,10 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/codama-idl/renderers-demo"
+        "url": "https://github.com/codama-idl/renderers-rust-cpi"
     },
     "bugs": {
-        "url": "http://github.com/codama-idl/renderers-demo/issues"
+        "url": "http://github.com/codama-idl/renderers-rust-cpi/issues"
     },
     "browserslist": [
         "supports bigint and not dead",
