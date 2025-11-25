@@ -14,7 +14,7 @@ import {
 
 import { getInstructionPageFragment, getProgramModPageFragment, getRootModPageFragment } from '../fragments';
 import { getInstructionModPageFragment } from '../fragments/instructionModPage';
-import { getImportFromFactory, GetRenderMapOptions, getTraitsFromNodeFactory, RenderScope } from '../utils';
+import { Fragment, getImportFromFactory, GetRenderMapOptions, getTraitsFromNodeFactory, RenderScope } from '../utils';
 import { getTypeManifestVisitor } from './getTypeManifestVisitor';
 
 export function getRenderMapVisitor(options: GetRenderMapOptions = {}) {
@@ -39,7 +39,7 @@ export function getRenderMapVisitor(options: GetRenderMapOptions = {}) {
     };
 
     return pipe(
-        staticVisitor(() => createRenderMap(), {
+        staticVisitor(() => createRenderMap<Fragment>(), {
             keys: ['rootNode', 'programNode', 'instructionNode', 'accountNode', 'definedTypeNode'],
         }),
         v =>
