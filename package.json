@@ -1,6 +1,6 @@
 {
     "name": "@codama/renderers-rust-cpi",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Renders CPI clients for your programs",
     "exports": {
         "types": "./dist/types/index.d.ts",
