@@ -7,18 +7,18 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
+use pinocchio::Address;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `assign` instruction.
 pub struct Assign<'a, 'b> {
-    pub account: &'a AccountInfo,
-    pub program_address: &'b Pubkey,
+    pub account: &'a AccountView,
+    pub program_address: &'b Address,
 }
 
 impl Assign<'_, '_> {
@@ -29,14 +29,15 @@ impl Assign<'_, '_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 1] = [AccountMeta::new(self.account.key(), true, true)];
+        let account_metas: [InstructionAccount; 1] =
+            [InstructionAccount::new(self.account.address(), true, true)];
 
         let mut uninit_data = [UNINIT_BYTE; 36];
         write_bytes(&mut uninit_data[0..4], &1u32.to_le_bytes());
         write_bytes(&mut uninit_data[4..36], self.program_address.as_ref());
         let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 36) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

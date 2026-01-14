@@ -4,8 +4,8 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::pubkey::Pubkey;
+use pinocchio::Address;
 use pinocchio_pubkey::pubkey;
 
 /// `system` program ID.
-pub const SYSTEM_ID: Pubkey = pubkey!("11111111111111111111111111111111");
+pub const SYSTEM_ID: Address = Address::new_from_array(pubkey!("11111111111111111111111111111111"));

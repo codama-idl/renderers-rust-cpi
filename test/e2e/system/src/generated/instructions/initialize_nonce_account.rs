@@ -7,20 +7,20 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
+use pinocchio::Address;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `initialize_nonce_account` instruction.
 pub struct InitializeNonceAccount<'a, 'b> {
-    pub nonce_account: &'a AccountInfo,
-    pub recent_blockhashes_sysvar: &'a AccountInfo,
-    pub rent_sysvar: &'a AccountInfo,
-    pub nonce_authority: &'b Pubkey,
+    pub nonce_account: &'a AccountView,
+    pub recent_blockhashes_sysvar: &'a AccountView,
+    pub rent_sysvar: &'a AccountView,
+    pub nonce_authority: &'b Address,
 }
 
 impl InitializeNonceAccount<'_, '_> {
@@ -31,10 +31,10 @@ impl InitializeNonceAccount<'_, '_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 3] = [
-            AccountMeta::new(self.nonce_account.key(), true, false),
-            AccountMeta::new(self.recent_blockhashes_sysvar.key(), false, false),
-            AccountMeta::new(self.rent_sysvar.key(), false, false),
+        let account_metas: [InstructionAccount; 3] = [
+            InstructionAccount::new(self.nonce_account.address(), true, false),
+            InstructionAccount::new(self.recent_blockhashes_sysvar.address(), false, false),
+            InstructionAccount::new(self.rent_sysvar.address(), false, false),
         ];
 
         let mut uninit_data = [UNINIT_BYTE; 36];
@@ -42,7 +42,7 @@ impl InitializeNonceAccount<'_, '_> {
         write_bytes(&mut uninit_data[4..36], self.nonce_authority.as_ref());
         let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 36) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

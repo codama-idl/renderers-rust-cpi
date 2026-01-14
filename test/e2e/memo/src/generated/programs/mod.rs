@@ -4,8 +4,9 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::pubkey::Pubkey;
+use pinocchio::Address;
 use pinocchio_pubkey::pubkey;
 
 /// `memo` program ID.
-pub const MEMO_ID: Pubkey = pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+pub const MEMO_ID: Address =
+    Address::new_from_array(pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"));

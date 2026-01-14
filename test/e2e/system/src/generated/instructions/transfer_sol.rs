@@ -7,17 +7,17 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `transfer_sol` instruction.
 pub struct TransferSol<'a> {
-    pub source: &'a AccountInfo,
-    pub destination: &'a AccountInfo,
+    pub source: &'a AccountView,
+    pub destination: &'a AccountView,
     pub amount: u64,
 }
 
@@ -29,9 +29,9 @@ impl TransferSol<'_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 2] = [
-            AccountMeta::new(self.source.key(), true, true),
-            AccountMeta::new(self.destination.key(), true, false),
+        let account_metas: [InstructionAccount; 2] = [
+            InstructionAccount::new(self.source.address(), true, true),
+            InstructionAccount::new(self.destination.address(), true, false),
         ];
 
         let mut uninit_data = [UNINIT_BYTE; 12];
@@ -39,7 +39,7 @@ impl TransferSol<'_> {
         write_bytes(&mut uninit_data[4..12], &self.amount.to_le_bytes());
         let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 12) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

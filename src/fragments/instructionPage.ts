@@ -84,8 +84,8 @@ function getInstructionStructFragment(
             const docs = getDocblockFragment(account.docs ?? [], true);
             const name = snakeCase(account.name);
             const type = addFragmentImports(
-                account.isSigner === 'either' ? fragment`(&'a AccountInfo, bool)` : fragment`&'a AccountInfo`,
-                ['pinocchio::account_info::AccountInfo'],
+                account.isSigner === 'either' ? fragment`(&'a AccountView, bool)` : fragment`&'a AccountView`,
+                ['pinocchio::AccountView'],
             );
             return account.isOptional
                 ? fragment`${docs}pub ${name}: Option<${type}>,`
@@ -127,9 +127,9 @@ function getInstructionImplFragment(
             const isWritable = account.isWritable ? 'true' : 'false';
             const accountMetaArguments =
                 account.isSigner === 'either'
-                    ? fragment`self.${name}.0.key(), ${isWritable}, self.${name}.1`
-                    : fragment`self.${name}.key(), ${isWritable}, ${account.isSigner}`;
-            return fragment`AccountMeta::new(${accountMetaArguments}),`;
+                    ? fragment`self.${name}.0.address(), ${isWritable}, self.${name}.1`
+                    : fragment`self.${name}.address(), ${isWritable}, ${account.isSigner}`;
+            return fragment`InstructionAccount::new(${accountMetaArguments}),`;
         }),
         cs => cs.join('\n'),
     );
@@ -159,13 +159,13 @@ function getInstructionImplFragment(
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
 
       // account metas
-      let account_metas: [AccountMeta; ${instructionNode.accounts.length}] = [
+      let account_metas: [InstructionAccount; ${instructionNode.accounts.length}] = [
         ${accountMetasFragment}
       ];
 
       ${instructionDataFragment}
 
-      let instruction = Instruction {
+      let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,
@@ -176,10 +176,10 @@ function getInstructionImplFragment(
 }`,
         [
             'pinocchio::cpi::invoke_signed',
-            'pinocchio::instruction::Instruction',
-            'pinocchio::instruction::AccountMeta',
+            'pinocchio::cpi::Signer',
+            'pinocchio::instruction::InstructionAccount',
+            'pinocchio::instruction::InstructionView',
             'pinocchio::ProgramResult',
-            'pinocchio::instruction::Signer',
         ],
     );
 }

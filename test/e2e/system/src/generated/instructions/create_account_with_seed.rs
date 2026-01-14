@@ -7,24 +7,24 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
+use pinocchio::Address;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `create_account_with_seed` instruction.
 pub struct CreateAccountWithSeed<'a, 'b, 'c, 'd> {
-    pub payer: &'a AccountInfo,
-    pub new_account: &'a AccountInfo,
-    pub base_account: &'a AccountInfo,
-    pub base: &'b Pubkey,
+    pub payer: &'a AccountView,
+    pub new_account: &'a AccountView,
+    pub base_account: &'a AccountView,
+    pub base: &'b Address,
     pub seed: &'c String,
     pub amount: u64,
     pub space: u64,
-    pub program_address: &'d Pubkey,
+    pub program_address: &'d Address,
 }
 
 impl CreateAccountWithSeed<'_, '_, '_, '_> {
@@ -35,10 +35,10 @@ impl CreateAccountWithSeed<'_, '_, '_, '_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 3] = [
-            AccountMeta::new(self.payer.key(), true, true),
-            AccountMeta::new(self.new_account.key(), true, false),
-            AccountMeta::new(self.base_account.key(), false, true),
+        let account_metas: [InstructionAccount; 3] = [
+            InstructionAccount::new(self.payer.address(), true, true),
+            InstructionAccount::new(self.new_account.address(), true, false),
+            InstructionAccount::new(self.base_account.address(), false, true),
         ];
 
         let mut uninit_data = [UNINIT_BYTE; 0];
@@ -50,7 +50,7 @@ impl CreateAccountWithSeed<'_, '_, '_, '_> {
         write_bytes(&mut uninit_data[16..48], self.program_address.as_ref());
         let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 48) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

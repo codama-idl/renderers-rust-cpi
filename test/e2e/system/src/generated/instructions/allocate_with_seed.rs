@@ -7,22 +7,22 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
+use pinocchio::Address;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `allocate_with_seed` instruction.
 pub struct AllocateWithSeed<'a, 'b, 'c, 'd> {
-    pub new_account: &'a AccountInfo,
-    pub base_account: &'a AccountInfo,
-    pub base: &'b Pubkey,
+    pub new_account: &'a AccountView,
+    pub base_account: &'a AccountView,
+    pub base: &'b Address,
     pub seed: &'c String,
     pub space: u64,
-    pub program_address: &'d Pubkey,
+    pub program_address: &'d Address,
 }
 
 impl AllocateWithSeed<'_, '_, '_, '_> {
@@ -33,9 +33,9 @@ impl AllocateWithSeed<'_, '_, '_, '_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 2] = [
-            AccountMeta::new(self.new_account.key(), true, false),
-            AccountMeta::new(self.base_account.key(), false, true),
+        let account_metas: [InstructionAccount; 2] = [
+            InstructionAccount::new(self.new_account.address(), true, false),
+            InstructionAccount::new(self.base_account.address(), false, true),
         ];
 
         let mut uninit_data = [UNINIT_BYTE; 0];
@@ -46,7 +46,7 @@ impl AllocateWithSeed<'_, '_, '_, '_> {
         write_bytes(&mut uninit_data[8..40], self.program_address.as_ref());
         let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 40) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

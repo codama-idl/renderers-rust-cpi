@@ -7,21 +7,21 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
+use pinocchio::Address;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `assign_with_seed` instruction.
 pub struct AssignWithSeed<'a, 'b, 'c, 'd> {
-    pub account: &'a AccountInfo,
-    pub base_account: &'a AccountInfo,
-    pub base: &'b Pubkey,
+    pub account: &'a AccountView,
+    pub base_account: &'a AccountView,
+    pub base: &'b Address,
     pub seed: &'c String,
-    pub program_address: &'d Pubkey,
+    pub program_address: &'d Address,
 }
 
 impl AssignWithSeed<'_, '_, '_, '_> {
@@ -32,9 +32,9 @@ impl AssignWithSeed<'_, '_, '_, '_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 2] = [
-            AccountMeta::new(self.account.key(), true, false),
-            AccountMeta::new(self.base_account.key(), false, true),
+        let account_metas: [InstructionAccount; 2] = [
+            InstructionAccount::new(self.account.address(), true, false),
+            InstructionAccount::new(self.base_account.address(), false, true),
         ];
 
         let mut uninit_data = [UNINIT_BYTE; 0];
@@ -44,7 +44,7 @@ impl AssignWithSeed<'_, '_, '_, '_> {
         write_bytes(&mut uninit_data[0..32], self.program_address.as_ref());
         let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 32) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,
