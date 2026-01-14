@@ -123,7 +123,7 @@ function getInstructionImplFragment(
 ) {
     const accountMetasFragment = mergeFragments(
         instructionNode.accounts.map(account => {
-            const name = snakeCase(account.name);
+            const name = account.isOptional ? `${snakeCase(account.name)}.unwrap()` : snakeCase(account.name);
             const isWritable = account.isWritable ? 'true' : 'false';
             const accountMetaArguments =
                 account.isSigner === 'either'
@@ -136,7 +136,7 @@ function getInstructionImplFragment(
 
     const accountsFragment = mergeFragments(
         instructionNode.accounts.map(account => {
-            const name = snakeCase(account.name);
+            const name = account.isOptional ? `${snakeCase(account.name)}.unwrap()` : snakeCase(account.name);
             return fragment`&self.${name},`;
         }),
         cs => cs.join('\n'),

@@ -24,8 +24,11 @@ impl Instruction7<'_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 1] =
-            [AccountMeta::new(self.my_account.key(), true, false)];
+        let account_metas: [AccountMeta; 1] = [AccountMeta::new(
+            self.my_account.unwrap().key(),
+            true,
+            false,
+        )];
 
         let data = &[];
 
@@ -35,6 +38,6 @@ impl Instruction7<'_> {
             data,
         };
 
-        invoke_signed(&instruction, &[&self.my_account], signers)
+        invoke_signed(&instruction, &[&self.my_account.unwrap()], signers)
     }
 }
