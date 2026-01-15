@@ -1,6 +1,7 @@
 import { CODAMA_ERROR__RENDERERS__UNSUPPORTED_NODE, CodamaError } from '@codama/errors';
-import { isNode, REGISTERED_TYPE_NODE_KINDS } from '@codama/nodes';
+import { BytesValueNode, isNode, REGISTERED_TYPE_NODE_KINDS } from '@codama/nodes';
 import { extendVisitor, pipe, staticVisitor, visit } from '@codama/visitors-core';
+import { getBase58Encoder } from '@solana/codecs-strings';
 
 import type { ParsedInstructionArgument } from '../fragments';
 import { addFragmentImports, Fragment, fragment } from '../utils';
@@ -17,11 +18,45 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                 },
 
                 visitBooleanType() {
-                    return [fragment``, 0];
+                    return [
+                        addFragmentImports(
+                            fragment`write_bytes(&mut uninit_data[${offset}..${offset + (argument.fixedSize || 1)}], &[self.${argument.displayName} as u8]);`,
+                            ['super::write_bytes'],
+                        ),
+                        offset + (argument.fixedSize || 1),
+                    ];
                 },
 
                 visitBytesType() {
-                    return [fragment``, 0];
+                    const value: BytesValueNode = argument.defaultValue! as unknown as BytesValueNode;
+                    let buf: Uint8Array;
+                    switch (value.encoding) {
+                        case 'base16': {
+                            buf = new Uint8Array(Buffer.from(value.data, 'hex'));
+                            break;
+                        }
+                        case 'base58': {
+                            buf = new Uint8Array(getBase58Encoder().encode(value.data).buffer);
+                            break;
+                        }
+                        case 'base64': {
+                            buf = new Uint8Array(Buffer.from(value.data, 'base64'));
+                            break;
+                        }
+                        case 'utf8': {
+                            const buffer = Buffer.from(value.data, 'utf8');
+                            buf = new Uint8Array(buffer.length);
+                            buf.set(buffer);
+                            break;
+                        }
+                    }
+                    return [
+                        addFragmentImports(
+                            fragment`write_bytes(&mut uninit_data[${offset}..${offset + buf.byteLength}], &[${buf}]);`,
+                            ['super::write_bytes'],
+                        ),
+                        offset + buf.byteLength,
+                    ];
                 },
 
                 visitDefinedTypeLink() {
