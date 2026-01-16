@@ -39,12 +39,33 @@ impl TransferSolWithSeed<'_, '_, '_> {
             InstructionAccount::new(self.destination.address(), true, false),
         ];
 
-        let mut uninit_data = [UNINIT_BYTE; 0];
-        write_bytes(&mut uninit_data[0..4], &11u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..12], &self.amount.to_le_bytes());
+        let mut offset = 0;
+        let mut uninit_data = [UNINIT_BYTE; 176];
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &11u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 12],
+            &self.amount.to_le_bytes(),
+        );
 
-        write_bytes(&mut uninit_data[0..32], self.from_owner.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 32) };
+        let string_bytes = self.from_seed.as_bytes();
+        write_bytes(
+            &mut uninit_data[offset + 12..offset + 16],
+            &string_bytes.len().to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 16..offset + 16 + string_bytes.len()],
+            string_bytes,
+        );
+        offset += string_bytes.len();
+
+        write_bytes(
+            &mut uninit_data[offset + 16..offset + 48],
+            self.from_owner.as_ref(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 48) };
 
         let instruction = InstructionView {
             program_id: &crate::ID,

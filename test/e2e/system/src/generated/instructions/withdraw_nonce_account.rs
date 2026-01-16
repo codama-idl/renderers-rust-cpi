@@ -40,10 +40,17 @@ impl WithdrawNonceAccount<'_> {
             InstructionAccount::new(self.nonce_authority.address(), false, true),
         ];
 
+        let offset = 0;
         let mut uninit_data = [UNINIT_BYTE; 12];
-        write_bytes(&mut uninit_data[0..4], &5u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..12], &self.withdraw_amount.to_le_bytes());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 12) };
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &5u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 12],
+            &self.withdraw_amount.to_le_bytes(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 12) };
 
         let instruction = InstructionView {
             program_id: &crate::ID,

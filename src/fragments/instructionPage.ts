@@ -205,10 +205,6 @@ function getInstructionDataFragment(
     const singleArgumentFragment = getInstructionDataFromSingleArgumentFragment(instructionArguments);
     if (singleArgumentFragment) return singleArgumentFragment;
 
-    const declareDataFragment = addFragmentImports(
-        fragment`let mut uninit_data = [UNINIT_BYTE; ${instructionFixedSize !== null ? instructionFixedSize : 0}];`,
-        ['super::UNINIT_BYTE', 'core::slice::from_raw_parts'],
-    );
     let offset = 0;
     const assignDataContentFragment = mergeFragments(
         instructionArguments.map(argument => {
@@ -218,7 +214,12 @@ function getInstructionDataFragment(
         }),
         cs => cs.join('\n'),
     );
-    const transmuteData = fragment`let data =  unsafe { from_raw_parts(uninit_data.as_ptr() as _, ${offset}) };`;
+    const transmuteData = fragment`let data =  unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset+${offset}) };`;
+
+    const declareDataFragment = addFragmentImports(
+        fragment`let ${instructionArguments.find(argument => argument.type.kind === 'sizePrefixTypeNode') ? 'mut ' : ''}offset = 0;\nlet mut uninit_data = [UNINIT_BYTE; ${instructionFixedSize !== null ? instructionFixedSize : instructionArguments.find(argument => argument.type.kind === 'sizePrefixTypeNode') ? offset + 128 : offset}];`,
+        ['super::UNINIT_BYTE', 'core::slice::from_raw_parts'],
+    );
 
     return mergeFragments([declareDataFragment, assignDataContentFragment, transmuteData], cs => cs.join('\n'));
 }

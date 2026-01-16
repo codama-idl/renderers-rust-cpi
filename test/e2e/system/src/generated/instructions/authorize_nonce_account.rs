@@ -35,10 +35,17 @@ impl AuthorizeNonceAccount<'_, '_> {
             InstructionAccount::new(self.nonce_authority.address(), false, true),
         ];
 
+        let offset = 0;
         let mut uninit_data = [UNINIT_BYTE; 36];
-        write_bytes(&mut uninit_data[0..4], &7u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..36], self.new_nonce_authority.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 36) };
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &7u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 36],
+            self.new_nonce_authority.as_ref(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 36) };
 
         let instruction = InstructionView {
             program_id: &crate::ID,

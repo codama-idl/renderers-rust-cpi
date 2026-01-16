@@ -14,13 +14,14 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
         v =>
             extendVisitor(v, {
                 visitArrayType() {
+                    console.log('Array?');
                     return [fragment``, 0];
                 },
 
                 visitBooleanType() {
                     return [
                         addFragmentImports(
-                            fragment`write_bytes(&mut uninit_data[${offset}..${offset + (argument.fixedSize || 1)}], &[self.${argument.displayName} as u8]);`,
+                            fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + (argument.fixedSize || 1)}], &[self.${argument.displayName} as u8]);`,
                             ['super::write_bytes'],
                         ),
                         offset + (argument.fixedSize || 1),
@@ -52,7 +53,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                     }
                     return [
                         addFragmentImports(
-                            fragment`write_bytes(&mut uninit_data[${offset}..${offset + buf.byteLength}], &[${buf}]);`,
+                            fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + buf.byteLength}], &[${buf}]);`,
                             ['super::write_bytes'],
                         ),
                         offset + buf.byteLength,
@@ -89,7 +90,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                         }
                         return [
                             addFragmentImports(
-                                fragment`write_bytes(&mut uninit_data[${offset}..${offset + argument.fixedSize!}], ${value});`,
+                                fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + argument.fixedSize!}], ${value});`,
                                 ['super::write_bytes'],
                             ),
                             offset + argument.fixedSize!,
@@ -111,7 +112,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                         } else {
                             value = fragment`self.${argument.displayName}`;
                         }
-                        return [fragment`uninit_data[${offset}] = ${value};`, offset + 1];
+                        return [fragment`uninit_data[offset+${offset}] = ${value};`, offset + 1];
                     } else {
                         let value: Fragment;
                         if (argument.defaultValue) {
@@ -121,7 +122,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                         }
                         return [
                             addFragmentImports(
-                                fragment`write_bytes(&mut uninit_data[${offset}..${offset + argument.fixedSize!}], &${value}.to_le_bytes());`,
+                                fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + argument.fixedSize!}], &${value}.to_le_bytes());`,
                                 ['super::write_bytes'],
                             ),
                             offset + argument.fixedSize!,
@@ -142,7 +143,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                     }
                     return [
                         addFragmentImports(
-                            fragment`write_bytes(&mut uninit_data[${offset}..${offset + argument.fixedSize!}], ${value}.as_ref());`,
+                            fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + argument.fixedSize!}], ${value}.as_ref());`,
                             ['super::write_bytes'],
                         ),
                         offset + argument.fixedSize!,
@@ -157,12 +158,31 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                     return [fragment``, 0];
                 },
 
-                visitSizePrefixType() {
-                    return [fragment``, 0];
+                visitSizePrefixType(node, { self }) {
+                    const [frag, size] = visit(node.type, self);
+                    return [frag, size];
                 },
 
                 visitStringType() {
-                    return [fragment``, 0];
+                    let value: Fragment;
+                    if (argument.defaultValue) {
+                        value = fragment`${argument.resolvedDefaultValue}`;
+                    } else {
+                        value = fragment`self.${argument.displayName}`;
+                    }
+
+                    return [
+                        addFragmentImports(
+                            fragment`
+                                let string_bytes = ${value}.as_bytes();
+                                write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + 4}], &string_bytes.len().to_le_bytes());
+                                write_bytes(&mut uninit_data[offset+${offset + 4}..offset+${offset + 4}+string_bytes.len()], string_bytes);
+                                offset += string_bytes.len();
+                            `,
+                            ['super::write_bytes'],
+                        ),
+                        offset + 4, // Update the offset dynamically based on the string length
+                    ];
                 },
 
                 visitStructFieldType() {

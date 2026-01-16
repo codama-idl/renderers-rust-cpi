@@ -22,11 +22,11 @@ pub use self::r#instruction5::*;
 pub use self::r#instruction6::*;
 pub use self::r#instruction7::*;
 
-const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::<u8>::uninit();
+pub const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::<u8>::uninit();
 
 /// Write bytes from a source slice to a destination slice of `MaybeUninit<u8>`.
 #[inline(always)]
-fn write_bytes(destination: &mut [MaybeUninit<u8>], source: &[u8]) {
+pub fn write_bytes(destination: &mut [MaybeUninit<u8>], source: &[u8]) {
     for (d, s) in destination.iter_mut().zip(source.iter()) {
         d.write(*s);
     }

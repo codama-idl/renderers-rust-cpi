@@ -37,12 +37,25 @@ impl CreateAccount<'_, '_> {
             InstructionAccount::new(self.new_account.address(), true, true),
         ];
 
+        let offset = 0;
         let mut uninit_data = [UNINIT_BYTE; 52];
-        write_bytes(&mut uninit_data[0..4], &0u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..12], &self.lamports.to_le_bytes());
-        write_bytes(&mut uninit_data[12..20], &self.space.to_le_bytes());
-        write_bytes(&mut uninit_data[20..52], self.program_address.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 52) };
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &0u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 12],
+            &self.lamports.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 12..offset + 20],
+            &self.space.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 20..offset + 52],
+            self.program_address.as_ref(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 52) };
 
         let instruction = InstructionView {
             program_id: &crate::ID,

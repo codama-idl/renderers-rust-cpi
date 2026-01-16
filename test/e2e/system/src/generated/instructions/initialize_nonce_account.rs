@@ -37,10 +37,17 @@ impl InitializeNonceAccount<'_, '_> {
             InstructionAccount::new(self.rent_sysvar.address(), false, false),
         ];
 
+        let offset = 0;
         let mut uninit_data = [UNINIT_BYTE; 36];
-        write_bytes(&mut uninit_data[0..4], &6u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..36], self.nonce_authority.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 36) };
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &6u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 36],
+            self.nonce_authority.as_ref(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 36) };
 
         let instruction = InstructionView {
             program_id: &crate::ID,

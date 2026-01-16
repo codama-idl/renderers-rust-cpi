@@ -38,13 +38,37 @@ impl AllocateWithSeed<'_, '_, '_, '_> {
             InstructionAccount::new(self.base_account.address(), false, true),
         ];
 
-        let mut uninit_data = [UNINIT_BYTE; 0];
-        write_bytes(&mut uninit_data[0..4], &9u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..36], self.base.as_ref());
+        let mut offset = 0;
+        let mut uninit_data = [UNINIT_BYTE; 208];
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &9u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 36],
+            self.base.as_ref(),
+        );
 
-        write_bytes(&mut uninit_data[0..8], &self.space.to_le_bytes());
-        write_bytes(&mut uninit_data[8..40], self.program_address.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 40) };
+        let string_bytes = self.seed.as_bytes();
+        write_bytes(
+            &mut uninit_data[offset + 36..offset + 40],
+            &string_bytes.len().to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 40..offset + 40 + string_bytes.len()],
+            string_bytes,
+        );
+        offset += string_bytes.len();
+
+        write_bytes(
+            &mut uninit_data[offset + 40..offset + 48],
+            &self.space.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 48..offset + 80],
+            self.program_address.as_ref(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 80) };
 
         let instruction = InstructionView {
             program_id: &crate::ID,
