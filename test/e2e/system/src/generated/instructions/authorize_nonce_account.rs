@@ -7,19 +7,19 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
+use pinocchio::Address;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `authorize_nonce_account` instruction.
 pub struct AuthorizeNonceAccount<'a, 'b> {
-    pub nonce_account: &'a AccountInfo,
-    pub nonce_authority: &'a AccountInfo,
-    pub new_nonce_authority: &'b Pubkey,
+    pub nonce_account: &'a AccountView,
+    pub nonce_authority: &'a AccountView,
+    pub new_nonce_authority: &'b Address,
 }
 
 impl AuthorizeNonceAccount<'_, '_> {
@@ -30,17 +30,24 @@ impl AuthorizeNonceAccount<'_, '_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 2] = [
-            AccountMeta::new(self.nonce_account.key(), true, false),
-            AccountMeta::new(self.nonce_authority.key(), false, true),
+        let account_metas: [InstructionAccount; 2] = [
+            InstructionAccount::new(self.nonce_account.address(), true, false),
+            InstructionAccount::new(self.nonce_authority.address(), false, true),
         ];
 
+        let offset = 0;
         let mut uninit_data = [UNINIT_BYTE; 36];
-        write_bytes(&mut uninit_data[0..4], &7u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..36], self.new_nonce_authority.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 36) };
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &7u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 36],
+            self.new_nonce_authority.as_ref(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 36) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

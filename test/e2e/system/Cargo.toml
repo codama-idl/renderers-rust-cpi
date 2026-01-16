@@ -10,9 +10,9 @@ test-sbf = []
 
 [dependencies]
 borsh = { version = "^0.10", optional = true }
-num-derive = "^0.3"
+num-derive = "^0.4"
 num-traits = "^0.2"
-pinocchio = "0.9"
+pinocchio = { version = "0.10.1", features = ["cpi"] }
 pinocchio-pubkey = "0.3"
 serde = { version = "^1.0", features = ["derive"], optional = true }
 serde_with = { version = "^3.0", optional = true }

@@ -1,4 +1,4 @@
-import { getAllInstructionsWithSubs, getAllPrograms, snakeCase } from '@codama/nodes';
+import { getAllDefinedTypes, getAllInstructionsWithSubs, getAllPrograms, snakeCase } from '@codama/nodes';
 import { createRenderMap, mergeRenderMaps } from '@codama/renderers-core';
 import {
     extendVisitor,
@@ -14,6 +14,8 @@ import {
 
 import { getInstructionPageFragment, getProgramModPageFragment, getRootModPageFragment } from '../fragments';
 import { getInstructionModPageFragment } from '../fragments/instructionModPage';
+import { getTypeModPageFragment } from '../fragments/typeModPage';
+import { getTypePageFragment } from '../fragments/typePage';
 import { Fragment, getImportFromFactory, GetRenderMapOptions, getTraitsFromNodeFactory, RenderScope } from '../utils';
 import { getTypeManifestVisitor } from './getTypeManifestVisitor';
 
@@ -44,6 +46,15 @@ export function getRenderMapVisitor(options: GetRenderMapOptions = {}) {
         }),
         v =>
             extendVisitor(v, {
+                visitDefinedType(node) {
+                    const typeManifest = visit(node, typeManifestVisitor);
+                    const typeNode = node;
+                    return createRenderMap(
+                        `types/${snakeCase(node.name)}.rs`,
+                        getTypePageFragment({ ...renderScope, typeManifest, typeNode }),
+                    );
+                },
+
                 visitInstruction(node) {
                     const instructionPath = stack.getPath('instructionNode');
                     return createRenderMap(
@@ -65,8 +76,8 @@ export function getRenderMapVisitor(options: GetRenderMapOptions = {}) {
                     const instructionsToExport = getAllInstructionsWithSubs(node, {
                         leavesOnly: !renderParentInstructions,
                     });
-                    const scope = { ...renderScope, instructionsToExport, programsToExport };
-
+                    const definedTypesToExport = getAllDefinedTypes(node);
+                    const scope = { ...renderScope, definedTypesToExport, instructionsToExport, programsToExport };
                     return mergeRenderMaps([
                         createRenderMap({
                             ['instructions/mod.rs']: getInstructionModPageFragment({
@@ -75,7 +86,12 @@ export function getRenderMapVisitor(options: GetRenderMapOptions = {}) {
                             }),
                             ['mod.rs']: getRootModPageFragment(scope),
                             ['programs/mod.rs']: getProgramModPageFragment(scope),
+                            ['types/mod.rs']: getTypeModPageFragment({
+                                ...renderScope,
+                                types: definedTypesToExport,
+                            }),
                         }),
+                        ...definedTypesToExport.map(p => visit(p, self)),
                         ...programsToExport.map(p => visit(p, self)),
                     ]);
                 },

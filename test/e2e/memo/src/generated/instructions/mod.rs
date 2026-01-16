@@ -10,11 +10,11 @@ pub mod r#add_memo;
 
 pub use self::r#add_memo::*;
 
-const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::<u8>::uninit();
+pub const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::<u8>::uninit();
 
 /// Write bytes from a source slice to a destination slice of `MaybeUninit<u8>`.
 #[inline(always)]
-fn write_bytes(destination: &mut [MaybeUninit<u8>], source: &[u8]) {
+pub fn write_bytes(destination: &mut [MaybeUninit<u8>], source: &[u8]) {
     for (d, s) in destination.iter_mut().zip(source.iter()) {
         d.write(*s);
     }

@@ -7,21 +7,21 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
+use pinocchio::Address;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `create_account` instruction.
 pub struct CreateAccount<'a, 'b> {
-    pub payer: &'a AccountInfo,
-    pub new_account: &'a AccountInfo,
+    pub payer: &'a AccountView,
+    pub new_account: &'a AccountView,
     pub lamports: u64,
     pub space: u64,
-    pub program_address: &'b Pubkey,
+    pub program_address: &'b Address,
 }
 
 impl CreateAccount<'_, '_> {
@@ -32,19 +32,32 @@ impl CreateAccount<'_, '_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 2] = [
-            AccountMeta::new(self.payer.key(), true, true),
-            AccountMeta::new(self.new_account.key(), true, true),
+        let account_metas: [InstructionAccount; 2] = [
+            InstructionAccount::new(self.payer.address(), true, true),
+            InstructionAccount::new(self.new_account.address(), true, true),
         ];
 
+        let offset = 0;
         let mut uninit_data = [UNINIT_BYTE; 52];
-        write_bytes(&mut uninit_data[0..4], &0u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..12], &self.lamports.to_le_bytes());
-        write_bytes(&mut uninit_data[12..20], &self.space.to_le_bytes());
-        write_bytes(&mut uninit_data[20..52], self.program_address.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 52) };
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &0u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 12],
+            &self.lamports.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 12..offset + 20],
+            &self.space.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 20..offset + 52],
+            self.program_address.as_ref(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 52) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

@@ -5,9 +5,9 @@
 //! <https://github.com/codama-idl/codama>
 
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `instruction2` instruction.
@@ -21,11 +21,11 @@ impl Instruction2 {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 0] = [];
+        let account_metas: [InstructionAccount; 0] = [];
 
         let data = &[];
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

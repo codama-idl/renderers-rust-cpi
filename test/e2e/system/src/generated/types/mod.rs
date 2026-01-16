@@ -4,9 +4,8 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::Address;
-use pinocchio_pubkey::pubkey;
+pub mod r#nonce_state;
+pub mod r#nonce_version;
 
-/// `dummy` program ID.
-pub const DUMMY_ID: Address =
-    Address::new_from_array(pubkey!("Dummy11111111111111111111111111111111111111"));
+pub use self::r#nonce_state::*;
+pub use self::r#nonce_version::*;

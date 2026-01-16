@@ -1,6 +1,7 @@
 import { CODAMA_ERROR__RENDERERS__UNSUPPORTED_NODE, CodamaError } from '@codama/errors';
-import { isNode, REGISTERED_TYPE_NODE_KINDS } from '@codama/nodes';
+import { BytesValueNode, isNode, REGISTERED_TYPE_NODE_KINDS } from '@codama/nodes';
 import { extendVisitor, pipe, staticVisitor, visit } from '@codama/visitors-core';
+import { getBase58Encoder } from '@solana/codecs-strings';
 
 import type { ParsedInstructionArgument } from '../fragments';
 import { addFragmentImports, Fragment, fragment } from '../utils';
@@ -13,15 +14,50 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
         v =>
             extendVisitor(v, {
                 visitArrayType() {
+                    console.log('Array?');
                     return [fragment``, 0];
                 },
 
                 visitBooleanType() {
-                    return [fragment``, 0];
+                    return [
+                        addFragmentImports(
+                            fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + (argument.fixedSize || 1)}], &[self.${argument.displayName} as u8]);`,
+                            ['super::write_bytes'],
+                        ),
+                        offset + (argument.fixedSize || 1),
+                    ];
                 },
 
                 visitBytesType() {
-                    return [fragment``, 0];
+                    const value: BytesValueNode = argument.defaultValue! as unknown as BytesValueNode;
+                    let buf: Uint8Array;
+                    switch (value.encoding) {
+                        case 'base16': {
+                            buf = new Uint8Array(Buffer.from(value.data, 'hex'));
+                            break;
+                        }
+                        case 'base58': {
+                            buf = new Uint8Array(getBase58Encoder().encode(value.data).buffer);
+                            break;
+                        }
+                        case 'base64': {
+                            buf = new Uint8Array(Buffer.from(value.data, 'base64'));
+                            break;
+                        }
+                        case 'utf8': {
+                            const buffer = Buffer.from(value.data, 'utf8');
+                            buf = new Uint8Array(buffer.length);
+                            buf.set(buffer);
+                            break;
+                        }
+                    }
+                    return [
+                        addFragmentImports(
+                            fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + buf.byteLength}], &[${buf}]);`,
+                            ['super::write_bytes'],
+                        ),
+                        offset + buf.byteLength,
+                    ];
                 },
 
                 visitDefinedTypeLink() {
@@ -54,7 +90,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                         }
                         return [
                             addFragmentImports(
-                                fragment`write_bytes(&mut uninit_data[${offset}..${offset + argument.fixedSize!}], ${value});`,
+                                fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + argument.fixedSize!}], ${value});`,
                                 ['super::write_bytes'],
                             ),
                             offset + argument.fixedSize!,
@@ -76,7 +112,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                         } else {
                             value = fragment`self.${argument.displayName}`;
                         }
-                        return [fragment`uninit_data[${offset}] = ${value};`, offset + 1];
+                        return [fragment`uninit_data[offset+${offset}] = ${value};`, offset + 1];
                     } else {
                         let value: Fragment;
                         if (argument.defaultValue) {
@@ -86,7 +122,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                         }
                         return [
                             addFragmentImports(
-                                fragment`write_bytes(&mut uninit_data[${offset}..${offset + argument.fixedSize!}], &${value}.to_le_bytes());`,
+                                fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + argument.fixedSize!}], &${value}.to_le_bytes());`,
                                 ['super::write_bytes'],
                             ),
                             offset + argument.fixedSize!,
@@ -107,7 +143,7 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                     }
                     return [
                         addFragmentImports(
-                            fragment`write_bytes(&mut uninit_data[${offset}..${offset + argument.fixedSize!}], ${value}.as_ref());`,
+                            fragment`write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + argument.fixedSize!}], ${value}.as_ref());`,
                             ['super::write_bytes'],
                         ),
                         offset + argument.fixedSize!,
@@ -122,12 +158,31 @@ export function getInstructionArgumentAssignmentVisitor(argument: ParsedInstruct
                     return [fragment``, 0];
                 },
 
-                visitSizePrefixType() {
-                    return [fragment``, 0];
+                visitSizePrefixType(node, { self }) {
+                    const [frag, size] = visit(node.type, self);
+                    return [frag, size];
                 },
 
                 visitStringType() {
-                    return [fragment``, 0];
+                    let value: Fragment;
+                    if (argument.defaultValue) {
+                        value = fragment`${argument.resolvedDefaultValue}`;
+                    } else {
+                        value = fragment`self.${argument.displayName}`;
+                    }
+
+                    return [
+                        addFragmentImports(
+                            fragment`
+                                let string_bytes = ${value}.as_bytes();
+                                write_bytes(&mut uninit_data[offset+${offset}..offset+${offset + 4}], &string_bytes.len().to_le_bytes());
+                                write_bytes(&mut uninit_data[offset+${offset + 4}..offset+${offset + 4}+string_bytes.len()], string_bytes);
+                                offset += string_bytes.len();
+                            `,
+                            ['super::write_bytes'],
+                        ),
+                        offset + 4, // Update the offset dynamically based on the string length
+                    ];
                 },
 
                 visitStructFieldType() {

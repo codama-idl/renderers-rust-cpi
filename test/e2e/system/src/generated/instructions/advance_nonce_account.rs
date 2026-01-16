@@ -4,18 +4,18 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `advance_nonce_account` instruction.
 pub struct AdvanceNonceAccount<'a> {
-    pub nonce_account: &'a AccountInfo,
-    pub recent_blockhashes_sysvar: &'a AccountInfo,
-    pub nonce_authority: &'a AccountInfo,
+    pub nonce_account: &'a AccountView,
+    pub recent_blockhashes_sysvar: &'a AccountView,
+    pub nonce_authority: &'a AccountView,
 }
 
 impl AdvanceNonceAccount<'_> {
@@ -26,15 +26,15 @@ impl AdvanceNonceAccount<'_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 3] = [
-            AccountMeta::new(self.nonce_account.key(), true, false),
-            AccountMeta::new(self.recent_blockhashes_sysvar.key(), false, false),
-            AccountMeta::new(self.nonce_authority.key(), false, true),
+        let account_metas: [InstructionAccount; 3] = [
+            InstructionAccount::new(self.nonce_account.address(), true, false),
+            InstructionAccount::new(self.recent_blockhashes_sysvar.address(), false, false),
+            InstructionAccount::new(self.nonce_authority.address(), false, true),
         ];
 
         let data = &4u32.to_le_bytes();
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

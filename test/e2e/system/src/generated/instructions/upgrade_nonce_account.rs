@@ -4,16 +4,16 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `upgrade_nonce_account` instruction.
 pub struct UpgradeNonceAccount<'a> {
-    pub nonce_account: &'a AccountInfo,
+    pub nonce_account: &'a AccountView,
 }
 
 impl UpgradeNonceAccount<'_> {
@@ -24,12 +24,15 @@ impl UpgradeNonceAccount<'_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 1] =
-            [AccountMeta::new(self.nonce_account.key(), true, false)];
+        let account_metas: [InstructionAccount; 1] = [InstructionAccount::new(
+            self.nonce_account.address(),
+            true,
+            false,
+        )];
 
         let data = &12u32.to_le_bytes();
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,

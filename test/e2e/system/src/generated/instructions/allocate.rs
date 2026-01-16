@@ -7,16 +7,16 @@
 use super::write_bytes;
 use super::UNINIT_BYTE;
 use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
 use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
+use pinocchio::cpi::Signer;
+use pinocchio::instruction::InstructionAccount;
+use pinocchio::instruction::InstructionView;
+use pinocchio::AccountView;
 use pinocchio::ProgramResult;
 
 /// Helper for cross-program invocations of `allocate` instruction.
 pub struct Allocate<'a> {
-    pub new_account: &'a AccountInfo,
+    pub new_account: &'a AccountView,
     pub space: u64,
 }
 
@@ -28,15 +28,25 @@ impl Allocate<'_> {
 
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
         // account metas
-        let account_metas: [AccountMeta; 1] =
-            [AccountMeta::new(self.new_account.key(), true, true)];
+        let account_metas: [InstructionAccount; 1] = [InstructionAccount::new(
+            self.new_account.address(),
+            true,
+            true,
+        )];
 
+        let offset = 0;
         let mut uninit_data = [UNINIT_BYTE; 12];
-        write_bytes(&mut uninit_data[0..4], &8u32.to_le_bytes());
-        write_bytes(&mut uninit_data[4..12], &self.space.to_le_bytes());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 12) };
+        write_bytes(
+            &mut uninit_data[offset + 0..offset + 4],
+            &8u32.to_le_bytes(),
+        );
+        write_bytes(
+            &mut uninit_data[offset + 4..offset + 12],
+            &self.space.to_le_bytes(),
+        );
+        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, offset + 12) };
 
-        let instruction = Instruction {
+        let instruction = InstructionView {
             program_id: &crate::ID,
             accounts: &account_metas,
             data,
