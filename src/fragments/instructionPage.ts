@@ -261,8 +261,7 @@ function getInstructionImplWithoutOptionalAccountsFragments(
         cs => cs.join('\n'),
     );
 
-    const instructionAccountsFragment =
-        fragment`let instruction_accounts: &[InstructionAccount; ${accountCount}] = &[${instructionAccounts}];`;
+    const instructionAccountsFragment = fragment`let instruction_accounts: &[InstructionAccount; ${accountCount}] = &[${instructionAccounts}];`;
 
     const invokeFragment = hasSignerAccounts
         ? fragment`solana_instruction_view::cpi::invoke_signed(&instruction, accounts, signers)`
