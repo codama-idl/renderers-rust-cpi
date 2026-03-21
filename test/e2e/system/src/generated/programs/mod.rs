@@ -4,8 +4,8 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::pubkey::Pubkey;
-use pinocchio_pubkey::pubkey;
+use solana_address::address;
+use solana_address::Address;
 
 /// `system` program ID.
-pub const SYSTEM_ID: Pubkey = pubkey!("11111111111111111111111111111111");
+pub const SYSTEM_ID: Address = address!("11111111111111111111111111111111");

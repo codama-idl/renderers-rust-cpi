@@ -5,57 +5,50 @@
 //! <https://github.com/codama-idl/codama>
 
 use super::write_bytes;
-use super::UNINIT_BYTE;
-use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
-use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
-use pinocchio::ProgramResult;
+use solana_account_view::AccountView;
+use solana_address::Address;
+use solana_instruction_view::InstructionAccount;
+use solana_instruction_view::InstructionView;
+use solana_program_error::ProgramResult;
 
 /// Helper for cross-program invocations of `initialize_nonce_account` instruction.
 pub struct InitializeNonceAccount<'a, 'b> {
-    pub nonce_account: &'a AccountInfo,
-    pub recent_blockhashes_sysvar: &'a AccountInfo,
-    pub rent_sysvar: &'a AccountInfo,
-    pub nonce_authority: &'b Pubkey,
+    pub nonce_account: &'a AccountView,
+    pub recent_blockhashes_sysvar: &'a AccountView,
+    pub rent_sysvar: &'a AccountView,
+    pub nonce_authority: &'b Address,
 }
 
 impl InitializeNonceAccount<'_, '_> {
     #[inline(always)]
     pub fn invoke(&self) -> ProgramResult {
-        self.invoke_signed(&[])
-    }
-
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
-        // account metas
-        let account_metas: [AccountMeta; 3] = [
-            AccountMeta::new(self.nonce_account.key(), true, false),
-            AccountMeta::new(self.recent_blockhashes_sysvar.key(), false, false),
-            AccountMeta::new(self.rent_sysvar.key(), false, false),
+        // Instruction accounts.
+        let instruction_accounts: &[InstructionAccount; 3] = &[
+            InstructionAccount::new(self.nonce_account.address(), true, false),
+            InstructionAccount::new(self.recent_blockhashes_sysvar.address(), false, false),
+            InstructionAccount::new(self.rent_sysvar.address(), false, false),
         ];
 
-        let mut uninit_data = [UNINIT_BYTE; 36];
+        // Instruction data.
+        let mut uninit_data = [const { core::mem::MaybeUninit::<u8>::uninit() }; 36];
         write_bytes(&mut uninit_data[0..4], &6u32.to_le_bytes());
         write_bytes(&mut uninit_data[4..36], self.nonce_authority.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 36) };
+        let data = unsafe { core::slice::from_raw_parts(uninit_data.as_ptr() as _, 36) };
 
-        let instruction = Instruction {
+        // Instruction.
+        let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(
-            &instruction,
-            &[
-                &self.nonce_account,
-                &self.recent_blockhashes_sysvar,
-                &self.rent_sysvar,
-            ],
-            signers,
-        )
+        // Accounts.
+        let accounts: &[&AccountView; 3] = &[
+            self.nonce_account,
+            self.recent_blockhashes_sysvar,
+            self.rent_sysvar,
+        ];
+
+        solana_instruction_view::cpi::invoke(&instruction, accounts)
     }
 }

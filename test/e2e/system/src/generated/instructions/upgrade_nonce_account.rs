@@ -4,37 +4,39 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::account_info::AccountInfo;
-use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::ProgramResult;
+use solana_account_view::AccountView;
+use solana_instruction_view::InstructionAccount;
+use solana_instruction_view::InstructionView;
+use solana_program_error::ProgramResult;
 
 /// Helper for cross-program invocations of `upgrade_nonce_account` instruction.
 pub struct UpgradeNonceAccount<'a> {
-    pub nonce_account: &'a AccountInfo,
+    pub nonce_account: &'a AccountView,
 }
 
 impl UpgradeNonceAccount<'_> {
     #[inline(always)]
     pub fn invoke(&self) -> ProgramResult {
-        self.invoke_signed(&[])
-    }
+        // Instruction accounts.
+        let instruction_accounts: &[InstructionAccount; 1] = &[InstructionAccount::new(
+            self.nonce_account.address(),
+            true,
+            false,
+        )];
 
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
-        // account metas
-        let account_metas: [AccountMeta; 1] =
-            [AccountMeta::new(self.nonce_account.key(), true, false)];
-
+        // Instruction data.
         let data = &12u32.to_le_bytes();
 
-        let instruction = Instruction {
+        // Instruction.
+        let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(&instruction, &[&self.nonce_account], signers)
+        // Accounts.
+        let accounts: &[&AccountView; 1] = &[self.nonce_account];
+
+        solana_instruction_view::cpi::invoke(&instruction, accounts)
     }
 }

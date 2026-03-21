@@ -4,37 +4,39 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::account_info::AccountInfo;
-use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::ProgramResult;
+use solana_account_view::AccountView;
+use solana_instruction_view::InstructionAccount;
+use solana_instruction_view::InstructionView;
+use solana_program_error::ProgramResult;
 
 /// Helper for cross-program invocations of `instruction6` instruction.
 pub struct Instruction6<'a> {
-    pub my_account: &'a AccountInfo,
+    pub my_account: &'a AccountView,
 }
 
 impl Instruction6<'_> {
     #[inline(always)]
     pub fn invoke(&self) -> ProgramResult {
-        self.invoke_signed(&[])
-    }
+        // Instruction accounts.
+        let instruction_accounts: &[InstructionAccount; 1] = &[InstructionAccount::new(
+            self.my_account.address(),
+            true,
+            false,
+        )];
 
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
-        // account metas
-        let account_metas: [AccountMeta; 1] =
-            [AccountMeta::new(self.my_account.key(), true, false)];
-
+        // Instruction data.
         let data = &[];
 
-        let instruction = Instruction {
+        // Instruction.
+        let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(&instruction, &[&self.my_account], signers)
+        // Accounts.
+        let accounts: &[&AccountView; 1] = &[self.my_account];
+
+        solana_instruction_view::cpi::invoke(&instruction, accounts)
     }
 }

@@ -4,11 +4,10 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::ProgramResult;
+use solana_account_view::AccountView;
+use solana_instruction_view::InstructionAccount;
+use solana_instruction_view::InstructionView;
+use solana_program_error::ProgramResult;
 
 /// Helper for cross-program invocations of `instruction1` instruction.
 pub struct Instruction1 {}
@@ -16,21 +15,22 @@ pub struct Instruction1 {}
 impl Instruction1 {
     #[inline(always)]
     pub fn invoke(&self) -> ProgramResult {
-        self.invoke_signed(&[])
-    }
+        // Instruction accounts.
+        let instruction_accounts: &[InstructionAccount; 0] = &[];
 
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
-        // account metas
-        let account_metas: [AccountMeta; 0] = [];
-
+        // Instruction data.
         let data = &[];
 
-        let instruction = Instruction {
+        // Instruction.
+        let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(&instruction, &[], signers)
+        // Accounts.
+        let accounts: &[&AccountView; 0] = &[];
+
+        solana_instruction_view::cpi::invoke(&instruction, accounts)
     }
 }

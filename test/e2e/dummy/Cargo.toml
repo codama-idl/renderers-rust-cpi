@@ -7,8 +7,10 @@ edition = "2021"
 test-sbf = []
 
 [dependencies]
-pinocchio = "0.9"
-pinocchio-pubkey = "0.3"
+solana-account-view = "2.0"
+solana-address = { version = "2.0", features = ["decode"] }
+solana-instruction-view = { version = "2.0", features = ["cpi"] }
+solana-program-error = "3.0"
 
 [dev-dependencies]
 assert_matches = "1.5.0"

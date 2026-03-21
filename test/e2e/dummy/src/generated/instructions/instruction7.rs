@@ -4,37 +4,54 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::account_info::AccountInfo;
-use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::ProgramResult;
+use solana_account_view::AccountView;
+use solana_instruction_view::InstructionAccount;
+use solana_instruction_view::InstructionView;
+use solana_program_error::ProgramResult;
 
 /// Helper for cross-program invocations of `instruction7` instruction.
 pub struct Instruction7<'a> {
-    pub my_account: Option<&'a AccountInfo>,
+    pub my_account: Option<&'a AccountView>,
 }
 
 impl Instruction7<'_> {
     #[inline(always)]
     pub fn invoke(&self) -> ProgramResult {
-        self.invoke_signed(&[])
-    }
+        // Instruction accounts.
+        let mut instruction_accounts =
+            [const { core::mem::MaybeUninit::<InstructionAccount>::uninit() }; 1];
 
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
-        // account metas
-        let account_metas: [AccountMeta; 1] =
-            [AccountMeta::new(self.my_account.key(), true, false)];
+        if let Some(my_account) = self.my_account {
+            instruction_accounts[0].write(InstructionAccount::new(
+                my_account.address(),
+                true,
+                false,
+            ));
+        } else {
+            instruction_accounts[0].write(InstructionAccount::new(&crate::ID, false, false));
+        }
+        let instruction_accounts: &[InstructionAccount] =
+            unsafe { core::slice::from_raw_parts(instruction_accounts.as_ptr() as _, 1) };
 
+        // Instruction data.
         let data = &[];
 
-        let instruction = Instruction {
+        // Instruction.
+        let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(&instruction, &[&self.my_account], signers)
+        // Accounts.
+        let mut accounts = [const { core::mem::MaybeUninit::<&AccountView>::uninit() }; 1];
+
+        if let Some(my_account) = self.my_account {
+            accounts[0].write(my_account);
+        }
+        let accounts: &[&AccountView] =
+            unsafe { core::slice::from_raw_parts(accounts.as_ptr() as _, 1) };
+
+        solana_instruction_view::cpi::invoke_with_bounds::<1, &AccountView>(&instruction, accounts)
     }
 }

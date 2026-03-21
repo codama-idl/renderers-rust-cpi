@@ -5,24 +5,20 @@
 //! <https://github.com/codama-idl/codama>
 
 use super::write_bytes;
-use super::UNINIT_BYTE;
-use core::slice::from_raw_parts;
-use pinocchio::account_info::AccountInfo;
-use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::pubkey::Pubkey;
-use pinocchio::ProgramResult;
+use solana_account_view::AccountView;
+use solana_address::Address;
+use solana_instruction_view::InstructionAccount;
+use solana_instruction_view::InstructionView;
+use solana_program_error::ProgramResult;
 
 /// Helper for cross-program invocations of `transfer_sol_with_seed` instruction.
 pub struct TransferSolWithSeed<'a, 'b, 'c> {
-    pub source: &'a AccountInfo,
-    pub base_account: &'a AccountInfo,
-    pub destination: &'a AccountInfo,
+    pub source: &'a AccountView,
+    pub base_account: &'a AccountView,
+    pub destination: &'a AccountView,
     pub amount: u64,
     pub from_seed: &'b String,
-    pub from_owner: &'c Pubkey,
+    pub from_owner: &'c Address,
 }
 
 impl TransferSolWithSeed<'_, '_, '_> {
@@ -31,31 +27,33 @@ impl TransferSolWithSeed<'_, '_, '_> {
         self.invoke_signed(&[])
     }
 
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
-        // account metas
-        let account_metas: [AccountMeta; 3] = [
-            AccountMeta::new(self.source.key(), true, false),
-            AccountMeta::new(self.base_account.key(), false, true),
-            AccountMeta::new(self.destination.key(), true, false),
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers: &[solana_instruction_view::cpi::Signer]) -> ProgramResult {
+        // Instruction accounts.
+        let instruction_accounts: &[InstructionAccount; 3] = &[
+            InstructionAccount::new(self.source.address(), true, false),
+            InstructionAccount::new(self.base_account.address(), false, true),
+            InstructionAccount::new(self.destination.address(), true, false),
         ];
 
-        let mut uninit_data = [UNINIT_BYTE; 0];
+        // Instruction data.
+        let mut uninit_data = [const { core::mem::MaybeUninit::<u8>::uninit() }; 0];
         write_bytes(&mut uninit_data[0..4], &11u32.to_le_bytes());
         write_bytes(&mut uninit_data[4..12], &self.amount.to_le_bytes());
 
         write_bytes(&mut uninit_data[0..32], self.from_owner.as_ref());
-        let data = unsafe { from_raw_parts(uninit_data.as_ptr() as _, 32) };
+        let data = unsafe { core::slice::from_raw_parts(uninit_data.as_ptr() as _, 32) };
 
-        let instruction = Instruction {
+        // Instruction.
+        let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(
-            &instruction,
-            &[&self.source, &self.base_account, &self.destination],
-            signers,
-        )
+        // Accounts.
+        let accounts: &[&AccountView; 3] = &[self.source, self.base_account, self.destination];
+
+        solana_instruction_view::cpi::invoke_signed(&instruction, accounts, signers)
     }
 }
