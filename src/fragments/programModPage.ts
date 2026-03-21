@@ -21,8 +21,8 @@ function getProgramAddressFragment(program: ProgramNode): Fragment {
     return mergeFragments(
         [
             fragment`/// \`${name}\` program ID.`,
-            pipe(fragment`pub const ${name.toUpperCase()}_ID: Pubkey = pubkey!("${program.publicKey}");`, f =>
-                addFragmentImports(f, ['pinocchio::pubkey::Pubkey', 'pinocchio_pubkey::pubkey']),
+            pipe(fragment`pub const ${name.toUpperCase()}_ID: Address = address!("${program.publicKey}");`, f =>
+                addFragmentImports(f, ['solana_address::Address', 'solana_address::address']),
             ),
         ],
         cs => cs.join('\n'),

@@ -47,13 +47,6 @@ export function getInstructionPageFragment(
     // Instruction arguments.
     const instructionArguments = getParsedInstructionArguments(instructionNode, accountsAndArgsConflicts, scope);
 
-    /*
-    const hasArgs = instructionArguments.some(arg => arg.defaultValueStrategy !== 'omitted');
-    const hasOptional = instructionArguments.some(
-        arg => !arg.resolvedDefaultValue && arg.defaultValueStrategy !== 'omitted',
-    );
-    */
-
     // Determines the size of the instruction data. The size is `null` if any of the arguments is
     // variable-sized.
     const instructionFixedSize = visit(instructionNode, scope.byteSizeVisitor);
@@ -84,8 +77,8 @@ function getInstructionStructFragment(
             const docs = getDocblockFragment(account.docs ?? [], true);
             const name = snakeCase(account.name);
             const type = addFragmentImports(
-                account.isSigner === 'either' ? fragment`(&'a AccountInfo, bool)` : fragment`&'a AccountInfo`,
-                ['pinocchio::account_info::AccountInfo'],
+                account.isSigner === 'either' ? fragment`(&'a AccountView, bool)` : fragment`&'a AccountView`,
+                ['solana_account_view::AccountView'],
             );
             return account.isOptional
                 ? fragment`${docs}pub ${name}: Option<${type}>,`
@@ -121,26 +114,13 @@ function getInstructionImplFragment(
     instructionArguments: ParsedInstructionArgument[],
     instructionFixedSize: number | null,
 ) {
-    const accountMetasFragment = mergeFragments(
-        instructionNode.accounts.map(account => {
-            const name = snakeCase(account.name);
-            const isWritable = account.isWritable ? 'true' : 'false';
-            const accountMetaArguments =
-                account.isSigner === 'either'
-                    ? fragment`self.${name}.0.key(), ${isWritable}, self.${name}.1`
-                    : fragment`self.${name}.key(), ${isWritable}, ${account.isSigner}`;
-            return fragment`AccountMeta::new(${accountMetaArguments}),`;
-        }),
-        cs => cs.join('\n'),
+    const hasOptionalAccounts = instructionNode.accounts.some(account => account.isOptional);
+    const hasSignerAccounts = instructionNode.accounts.some(
+        account => account.isSigner === 'either' || account.isSigner === true,
     );
-
-    const accountsFragment = mergeFragments(
-        instructionNode.accounts.map(account => {
-            const name = snakeCase(account.name);
-            return fragment`&self.${name},`;
-        }),
-        cs => cs.join('\n'),
-    );
+    const { accountsFragment, instructionAccountsFragment, invokeFragment } = hasOptionalAccounts
+        ? getInstructionImplWithOptionalAccountsFragments(instructionNode, hasSignerAccounts)
+        : getInstructionImplWithoutOptionalAccountsFragments(instructionNode, hasSignerAccounts);
 
     const instructionDataFragment =
         instructionArguments.length > 0
@@ -149,39 +129,155 @@ function getInstructionImplFragment(
 
     const structLifetimes = getLifetimeDeclarations(instructionNode, instructionArguments, true);
 
-    return addFragmentImports(
-        fragment`impl ${pascalCase(instructionNode.name)}${structLifetimes} {
-    #[inline(always)]
+    const invokeMethodsFragment = hasSignerAccounts
+        ? fragment`#[inline(always)]
     pub fn invoke(&self) -> ProgramResult {
         self.invoke_signed(&[])
     }
 
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers: &[solana_instruction_view::cpi::Signer]) -> ProgramResult {`
+        : fragment`#[inline(always)]
+    pub fn invoke(&self) -> ProgramResult {`;
 
-      // account metas
-      let account_metas: [AccountMeta; ${instructionNode.accounts.length}] = [
-        ${accountMetasFragment}
-      ];
+    return addFragmentImports(
+        fragment`impl ${pascalCase(instructionNode.name)}${structLifetimes} {
+      ${invokeMethodsFragment}
 
+      // Instruction accounts.
+      ${instructionAccountsFragment}
+
+      // Instruction data.
       ${instructionDataFragment}
 
-      let instruction = Instruction {
+      // Instruction.
+      let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(&instruction, &[${accountsFragment}], signers)
+        // Accounts.
+        ${accountsFragment}
+
+        ${invokeFragment}
     }
 }`,
         [
-            'pinocchio::cpi::invoke_signed',
-            'pinocchio::instruction::Instruction',
-            'pinocchio::instruction::AccountMeta',
-            'pinocchio::ProgramResult',
-            'pinocchio::instruction::Signer',
+            'solana_account_view::AccountView',
+            'solana_instruction_view::InstructionAccount',
+            'solana_instruction_view::InstructionView',
+            'solana_program_error::ProgramResult',
         ],
     );
+}
+
+function getInstructionImplWithOptionalAccountsFragments(
+    instructionNode: InstructionNode,
+    hasSignerAccounts: boolean,
+): {
+    accountsFragment: Fragment;
+    instructionAccountsFragment: Fragment;
+    invokeFragment: Fragment;
+} {
+    const accountCount = instructionNode.accounts.length;
+
+    const accounts = mergeFragments(
+        instructionNode.accounts.map((account, index) => {
+            const name = snakeCase(account.name);
+            return account.isOptional
+                ? fragment`
+                            if let Some(${name}) = self.${name} {
+                                accounts[${index}].write(${name});
+                            }`
+                : fragment`accounts[${index}].write(self.${name});`;
+        }),
+        cs => cs.join('\n'),
+    );
+
+    const accountsFragment = mergeFragments(
+        [
+            fragment`let mut accounts = [const { core::mem::MaybeUninit::<&AccountView>::uninit() }; ${accountCount}];`,
+            accounts,
+            fragment`let accounts: &[&AccountView] = unsafe { core::slice::from_raw_parts(accounts.as_ptr() as _, ${accountCount}) };`,
+        ],
+        cs => cs.join('\n'),
+    );
+
+    const instructionAccounts = mergeFragments(
+        instructionNode.accounts.map((account, index) => {
+            const name = snakeCase(account.name);
+            return account.isOptional
+                ? fragment`
+                            if let Some(${name}) = self.${name} {
+                                instruction_accounts[${index}].write(InstructionAccount::new(${getInstructionAccountArgumentsFragment(account, name)}));
+                            } else {
+                                instruction_accounts[${index}].write(InstructionAccount::new(&crate::ID, false, false));
+                            }`
+                : fragment`instruction_accounts[${index}].write(InstructionAccount::new(${getInstructionAccountArgumentsFragment(account, `self.${name}`)}));`;
+        }),
+        cs => cs.join('\n'),
+    );
+
+    const instructionAccountsFragment = mergeFragments(
+        [
+            fragment`let mut instruction_accounts = [const { core::mem::MaybeUninit::<InstructionAccount>::uninit() }; ${accountCount}];`,
+            instructionAccounts,
+            fragment`let instruction_accounts: &[InstructionAccount] = unsafe { core::slice::from_raw_parts(instruction_accounts.as_ptr() as _, ${accountCount}) };`,
+        ],
+        cs => cs.join('\n'),
+    );
+
+    const invokeFragment = hasSignerAccounts
+        ? fragment`solana_instruction_view::cpi::invoke_signed_with_bounds::<${accountCount}, &AccountView>(&instruction, accounts, signers)`
+        : fragment`solana_instruction_view::cpi::invoke_with_bounds::<${accountCount}, &AccountView>(&instruction, accounts)`;
+
+    return { accountsFragment, instructionAccountsFragment, invokeFragment };
+}
+
+function getInstructionImplWithoutOptionalAccountsFragments(
+    instructionNode: InstructionNode,
+    hasSignerAccounts: boolean,
+): {
+    accountsFragment: Fragment;
+    instructionAccountsFragment: Fragment;
+    invokeFragment: Fragment;
+} {
+    const accountCount = instructionNode.accounts.length;
+    const accounts = mergeFragments(
+        instructionNode.accounts.map(account => {
+            const name = snakeCase(account.name);
+            return fragment`self.${name},`;
+        }),
+        cs => cs.join('\n'),
+    );
+    const accountsFragment = fragment`let accounts: &[&AccountView; ${accountCount}] = &[${accounts}];`;
+
+    const instructionAccounts = mergeFragments(
+        instructionNode.accounts.map(account => {
+            const name = snakeCase(account.name);
+            return fragment`InstructionAccount::new(${getInstructionAccountArgumentsFragment(account, `self.${name}`)}),`;
+        }),
+        cs => cs.join('\n'),
+    );
+
+    const instructionAccountsFragment = fragment`let instruction_accounts: &[InstructionAccount; ${accountCount}] = &[${instructionAccounts}];`;
+
+    const invokeFragment = hasSignerAccounts
+        ? fragment`solana_instruction_view::cpi::invoke_signed(&instruction, accounts, signers)`
+        : fragment`solana_instruction_view::cpi::invoke(&instruction, accounts)`;
+
+    return { accountsFragment, instructionAccountsFragment, invokeFragment };
+}
+
+function getInstructionAccountArgumentsFragment(
+    account: InstructionNode['accounts'][number],
+    accountExpression: string,
+): Fragment {
+    const isWritable = account.isWritable ? 'true' : 'false';
+    return account.isSigner === 'either'
+        ? fragment`${accountExpression}.0.address(), ${isWritable}, ${accountExpression}.1`
+        : fragment`${accountExpression}.address(), ${isWritable}, ${account.isSigner}`;
 }
 
 /**
@@ -205,10 +301,8 @@ function getInstructionDataFragment(
     const singleArgumentFragment = getInstructionDataFromSingleArgumentFragment(instructionArguments);
     if (singleArgumentFragment) return singleArgumentFragment;
 
-    const declareDataFragment = addFragmentImports(
-        fragment`let mut uninit_data = [UNINIT_BYTE; ${instructionFixedSize !== null ? instructionFixedSize : 0}];`,
-        ['super::UNINIT_BYTE', 'core::slice::from_raw_parts'],
-    );
+    const declareDataFragment = fragment`let mut uninit_data = [const { core::mem::MaybeUninit::<u8>::uninit() }; ${instructionFixedSize !== null ? instructionFixedSize : 0}];`;
+
     let offset = 0;
     const assignDataContentFragment = mergeFragments(
         instructionArguments.map(argument => {
@@ -218,7 +312,7 @@ function getInstructionDataFragment(
         }),
         cs => cs.join('\n'),
     );
-    const transmuteData = fragment`let data =  unsafe { from_raw_parts(uninit_data.as_ptr() as _, ${offset}) };`;
+    const transmuteData = fragment`let data =  unsafe { core::slice::from_raw_parts(uninit_data.as_ptr() as _, ${offset}) };`;
 
     return mergeFragments([declareDataFragment, assignDataContentFragment, transmuteData], cs => cs.join('\n'));
 }

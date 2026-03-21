@@ -4,18 +4,16 @@
 //!
 //! <https://github.com/codama-idl/codama>
 
-use pinocchio::account_info::AccountInfo;
-use pinocchio::cpi::invoke_signed;
-use pinocchio::instruction::AccountMeta;
-use pinocchio::instruction::Instruction;
-use pinocchio::instruction::Signer;
-use pinocchio::ProgramResult;
+use solana_account_view::AccountView;
+use solana_instruction_view::InstructionAccount;
+use solana_instruction_view::InstructionView;
+use solana_program_error::ProgramResult;
 
 /// Helper for cross-program invocations of `advance_nonce_account` instruction.
 pub struct AdvanceNonceAccount<'a> {
-    pub nonce_account: &'a AccountInfo,
-    pub recent_blockhashes_sysvar: &'a AccountInfo,
-    pub nonce_authority: &'a AccountInfo,
+    pub nonce_account: &'a AccountView,
+    pub recent_blockhashes_sysvar: &'a AccountView,
+    pub nonce_authority: &'a AccountView,
 }
 
 impl AdvanceNonceAccount<'_> {
@@ -24,30 +22,32 @@ impl AdvanceNonceAccount<'_> {
         self.invoke_signed(&[])
     }
 
-    pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
-        // account metas
-        let account_metas: [AccountMeta; 3] = [
-            AccountMeta::new(self.nonce_account.key(), true, false),
-            AccountMeta::new(self.recent_blockhashes_sysvar.key(), false, false),
-            AccountMeta::new(self.nonce_authority.key(), false, true),
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers: &[solana_instruction_view::cpi::Signer]) -> ProgramResult {
+        // Instruction accounts.
+        let instruction_accounts: &[InstructionAccount; 3] = &[
+            InstructionAccount::new(self.nonce_account.address(), true, false),
+            InstructionAccount::new(self.recent_blockhashes_sysvar.address(), false, false),
+            InstructionAccount::new(self.nonce_authority.address(), false, true),
         ];
 
+        // Instruction data.
         let data = &4u32.to_le_bytes();
 
-        let instruction = Instruction {
+        // Instruction.
+        let instruction = InstructionView {
             program_id: &crate::ID,
-            accounts: &account_metas,
+            accounts: instruction_accounts,
             data,
         };
 
-        invoke_signed(
-            &instruction,
-            &[
-                &self.nonce_account,
-                &self.recent_blockhashes_sysvar,
-                &self.nonce_authority,
-            ],
-            signers,
-        )
+        // Accounts.
+        let accounts: &[&AccountView; 3] = &[
+            self.nonce_account,
+            self.recent_blockhashes_sysvar,
+            self.nonce_authority,
+        ];
+
+        solana_instruction_view::cpi::invoke_signed(&instruction, accounts, signers)
     }
 }

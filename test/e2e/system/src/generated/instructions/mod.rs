@@ -5,6 +5,7 @@
 //! <https://github.com/codama-idl/codama>
 
 use core::mem::MaybeUninit;
+use core::ptr::copy_nonoverlapping;
 
 pub mod r#advance_nonce_account;
 pub mod r#allocate;
@@ -34,12 +35,16 @@ pub use self::r#transfer_sol_with_seed::*;
 pub use self::r#upgrade_nonce_account::*;
 pub use self::r#withdraw_nonce_account::*;
 
-const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::<u8>::uninit();
-
 /// Write bytes from a source slice to a destination slice of `MaybeUninit<u8>`.
+#[allow(dead_code)]
 #[inline(always)]
-fn write_bytes(destination: &mut [MaybeUninit<u8>], source: &[u8]) {
-    for (d, s) in destination.iter_mut().zip(source.iter()) {
-        d.write(*s);
+pub(crate) fn write_bytes(destination: &mut [MaybeUninit<u8>], source: &[u8]) {
+    let len = destination.len().min(source.len());
+    // SAFETY:
+    // - Both pointers have alignment 1.
+    // - For valid (non-UB) references, the borrow checker guarantees no overlap.
+    // - `len` is bounded by both slice lengths.
+    unsafe {
+        copy_nonoverlapping(source.as_ptr(), destination.as_mut_ptr() as *mut u8, len);
     }
 }

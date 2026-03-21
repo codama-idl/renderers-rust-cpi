@@ -241,7 +241,7 @@ export function getTypeManifestVisitor(options: {
                 visitPublicKeyType() {
                     return {
                         nestedStructs: [],
-                        type: addFragmentImports(fragment`Pubkey`, ['pinocchio::pubkey::Pubkey']),
+                        type: addFragmentImports(fragment`Address`, ['solana_address::Address']),
                     };
                 },
 
