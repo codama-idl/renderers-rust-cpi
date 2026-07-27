@@ -33,7 +33,7 @@ export function renderValueNodeVisitor(
     return {
         visitArrayValue(node) {
             return mergeFragments(
-                node.items.map(v => visit(v, this)),
+                (node.items ?? []).map(v => visit(v, this)),
                 cs => `[${cs.join(', ')}]`,
             );
         },
@@ -75,6 +75,12 @@ export function renderValueNodeVisitor(
             return fragment`${enumName}::${variantName} ${fields}`;
         },
 
+        visitInjectedValue() {
+            // An injected value is resolved by key from a surrounding provider at a later stage,
+            // so it has no concrete Rust rendering here.
+            throw new Error('Unsupported injected value node.');
+        },
+
         visitMapEntryValue(node) {
             const mapKey = visit(node.key, this);
             const mapValue = visit(node.value, this);
@@ -82,7 +88,7 @@ export function renderValueNodeVisitor(
         },
 
         visitMapValue(node) {
-            const entries = node.entries.map(entry => visit(entry, this));
+            const entries = (node.entries ?? []).map(entry => visit(entry, this));
             return addFragmentImports(
                 mergeFragments(entries, cs => `HashMap::from([${cs.join(', ')}])`),
                 ['std::collection::HashMap'],
@@ -102,7 +108,7 @@ export function renderValueNodeVisitor(
         },
 
         visitSetValue(node) {
-            const items = node.items.map(v => visit(v, this));
+            const items = (node.items ?? []).map(v => visit(v, this));
             return addFragmentImports(
                 mergeFragments(items, cs => `HashSet::from([${cs.join(', ')}])`),
                 ['std::collection::HashSet'],
@@ -126,12 +132,12 @@ export function renderValueNodeVisitor(
         },
 
         visitStructValue(node) {
-            const fields = node.fields.map(field => visit(field, this));
+            const fields = (node.fields ?? []).map(field => visit(field, this));
             return mergeFragments(fields, cs => `{ ${cs.join(', ')} }`);
         },
 
         visitTupleValue(node) {
-            const items = node.items.map(v => visit(v, this));
+            const items = (node.items ?? []).map(v => visit(v, this));
             return mergeFragments(items, cs => `(${cs.join(', ')})`);
         },
     };
