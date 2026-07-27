@@ -80,7 +80,7 @@ function getInstructionStructFragment(
     instructionArguments: ParsedInstructionArgument[],
 ) {
     const accountsFragment = mergeFragments(
-        instructionNode.accounts.map(account => {
+        (instructionNode.accounts ?? []).map(account => {
             const docs = getDocblockFragment(account.docs ?? [], true);
             const name = snakeCase(account.name);
             const type = addFragmentImports(
@@ -122,7 +122,7 @@ function getInstructionImplFragment(
     instructionFixedSize: number | null,
 ) {
     const accountMetasFragment = mergeFragments(
-        instructionNode.accounts.map(account => {
+        (instructionNode.accounts ?? []).map(account => {
             const name = snakeCase(account.name);
             const isWritable = account.isWritable ? 'true' : 'false';
             const accountMetaArguments =
@@ -135,7 +135,7 @@ function getInstructionImplFragment(
     );
 
     const accountsFragment = mergeFragments(
-        instructionNode.accounts.map(account => {
+        (instructionNode.accounts ?? []).map(account => {
             const name = snakeCase(account.name);
             return fragment`&self.${name},`;
         }),
@@ -159,7 +159,7 @@ function getInstructionImplFragment(
     pub fn invoke_signed(&self, signers: &[Signer]) -> ProgramResult {
 
       // account metas
-      let account_metas: [AccountMeta; ${instructionNode.accounts.length}] = [
+      let account_metas: [AccountMeta; ${(instructionNode.accounts ?? []).length}] = [
         ${accountMetasFragment}
       ];
 
@@ -284,7 +284,7 @@ function getParsedInstructionArguments(
         parentName: `${pascalCase(instructionNode.name)}InstructionData`,
     });
 
-    return instructionNode.arguments.map(argument => {
+    return (instructionNode.arguments ?? []).map(argument => {
         const fixedSize = visit(argument.type, scope.byteSizeVisitor);
         const shouldUseLifetime = fixedSize === null || fixedSize > 8;
 
@@ -309,7 +309,7 @@ function getParsedInstructionArguments(
 
 function getLifetimeIterator(instructionNode: InstructionNode): Iterator<string, string> {
     // Start from 'b instead of 'a if we have accounts.
-    let lifetime = instructionNode.accounts.length > 0 ? 1 : 0;
+    let lifetime = (instructionNode.accounts ?? []).length > 0 ? 1 : 0;
     return {
         next: () => {
             if (lifetime >= 26) {
@@ -326,7 +326,7 @@ function getLifetimeDeclarations(
     useUnderscore = false,
 ): string {
     const lifetimes = [
-        ...(instructionNode.accounts.length > 0 ? [useUnderscore ? `'_` : `'a`] : []),
+        ...((instructionNode.accounts ?? []).length > 0 ? [useUnderscore ? `'_` : `'a`] : []),
         ...instructionArguments.flatMap(arg => (arg.lifetime ? [useUnderscore ? `'_` : `'${arg.lifetime}`] : [])),
     ];
     return lifetimes.length > 0 ? `<${lifetimes.join(', ')}>` : '';
@@ -334,8 +334,8 @@ function getLifetimeDeclarations(
 
 function getConflictsBetweenAccountsAndArguments(instructionNode: InstructionNode): string[] {
     const allNames = [
-        ...instructionNode.accounts.map(account => account.name),
-        ...instructionNode.arguments.map(argument => argument.name),
+        ...(instructionNode.accounts ?? []).map(account => account.name),
+        ...(instructionNode.arguments ?? []).map(argument => argument.name),
     ];
     const duplicates = allNames.filter((e, i, a) => a.indexOf(e) !== i);
     return [...new Set(duplicates)];
