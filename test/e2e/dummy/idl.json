@@ -116,23 +116,6 @@
             }
           ],
           "arguments": []
-        },
-        {
-          "kind": "instructionNode",
-          "name": "instruction7",
-          "optionalAccountStrategy": "programId",
-          "docs": ["Testing instructions with optional accounts only"],
-          "accounts": [
-            {
-              "kind": "instructionAccountNode",
-              "name": "myAccount",
-              "isWritable": true,
-              "isSigner": false,
-              "isOptional": true,
-              "docs": []
-            }
-          ],
-          "arguments": []
         }
       ],
       "definedTypes": [],
