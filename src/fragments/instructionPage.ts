@@ -33,6 +33,13 @@ export function getInstructionPageFragment(
 ): Fragment {
     const instructionNode = getLastNodeFromPath(scope.instructionPath);
 
+    if ((instructionNode.accounts ?? []).some(account => account.isOptional)) {
+        throw new Error(
+            `Optional instruction accounts are not yet supported by the Rust CPI renderer ` +
+                `(instruction: ${instructionNode.name}).`,
+        );
+    }
+
     // canMergeAccountsAndArgs
     const accountsAndArgsConflicts = getConflictsBetweenAccountsAndArguments(instructionNode);
     if (accountsAndArgsConflicts.length > 0) {

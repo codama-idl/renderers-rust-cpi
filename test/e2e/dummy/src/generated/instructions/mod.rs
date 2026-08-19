@@ -12,7 +12,6 @@ pub mod r#instruction3;
 pub mod r#instruction4;
 pub mod r#instruction5;
 pub mod r#instruction6;
-pub mod r#instruction7;
 
 pub use self::r#instruction1::*;
 pub use self::r#instruction2::*;
@@ -20,7 +19,6 @@ pub use self::r#instruction3::*;
 pub use self::r#instruction4::*;
 pub use self::r#instruction5::*;
 pub use self::r#instruction6::*;
-pub use self::r#instruction7::*;
 
 const UNINIT_BYTE: MaybeUninit<u8> = MaybeUninit::<u8>::uninit();
 
