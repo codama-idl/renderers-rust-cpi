@@ -21,8 +21,8 @@ importers:
         specifier: ^1.10.0
         version: 1.10.2
       '@solana/codecs-strings':
-        specifier: ^7.0.0
-        version: 7.1.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
+        specifier: ^8.1.0
+        version: 8.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
     devDependencies:
       '@changesets/changelog-github':
         specifier: ^1.0.0
@@ -1129,8 +1129,8 @@ packages:
   '@sinonjs/fake-timers@13.0.5':
     resolution: {integrity: sha512-36/hTbH2uaWuGVERyC6da9YwGWnzUZXuPro/F2LfsdOsLnCojz/iSH8MxUt/FD2S5XBSVPhmArFUXcpCQ2Hkiw==}
 
-  '@solana/codecs-core@7.1.1':
-    resolution: {integrity: sha512-C1UOAQ7LH8RuCTfaij6hthTZeBlpp8GuD2g9Nag/xgiNKJGvAfVrcorb+kO/sufdYI8Lu+BiVvPeKOjQDQiKqg==}
+  '@solana/codecs-core@8.1.0':
+    resolution: {integrity: sha512-ClBbCrHbxgibtSZp3G+3S2PYFaw2Slx229KbFAXcZ52TAXgVRnXgNOY7HpURbmxnBFzEHSMu9u1zR7Ap8Tfk+g==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
       typescript: '>=5.4.0'
@@ -1138,8 +1138,8 @@ packages:
       typescript:
         optional: true
 
-  '@solana/codecs-numbers@7.1.1':
-    resolution: {integrity: sha512-TWWrQq6Wp5Yf5bSc6RbxDDYCRUBBmRtRgjvUMHGp0P9K+4uFwxllRjSZFzBPHgXj3UTeZmFJdcoD271QhAgibg==}
+  '@solana/codecs-numbers@8.1.0':
+    resolution: {integrity: sha512-3qVIu0Fqx5dgBri+bE65d02dA7wvGdg4t9t8PJl4vvdUu/d531YhqAIqTLMSGuC+TeemAZa5FRsT5okuvqrb/g==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
       typescript: '>=5.4.0'
@@ -1147,8 +1147,8 @@ packages:
       typescript:
         optional: true
 
-  '@solana/codecs-strings@7.1.1':
-    resolution: {integrity: sha512-6qWl+atG60D2LmP47GyGapQFhVsG1sVhVrEaM3lV09vwrGOMeOZARZ4ObaQ5m6uQmM04G+f8dY9d17nCMbGHGg==}
+  '@solana/codecs-strings@8.1.0':
+    resolution: {integrity: sha512-Mhq97DN2y7KFTRuxrEEyXvVuYrPLn1VZKv0h8D0yvK0RMdWmEBRUC2kucc9cVlV53Z+RrS4ovGICtnf+ZkFoYw==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
       fastestsmallesttextencoderdecoder: ^1.0.22
@@ -1159,8 +1159,8 @@ packages:
       typescript:
         optional: true
 
-  '@solana/errors@7.1.1':
-    resolution: {integrity: sha512-q35qck8rBnNvJlPU00mnHEQm7gWvghzYz8khqVoLhjgodTzGp46VqnIOyI1LXOAF6XDal58bMNDO980MQgq8yw==}
+  '@solana/errors@8.1.0':
+    resolution: {integrity: sha512-dCuQR9nSVp4GBESLpOOIH84px5REySC4V5TMbR1PvkI09DU1BV8Pi/4W466enijO8NXCKwkL5YLNHdn97KBPDA==}
     engines: {node: '>=20.18.0'}
     hasBin: true
     peerDependencies:
@@ -1833,8 +1833,8 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  electron-to-chromium@1.5.416:
-    resolution: {integrity: sha512-K6bvB2BjnNrugtIih6ewlbBI9DXa976jIdiIlRLHhBoEI9a4JaQjjHyF+A1IQI543aQYR4LnmOrT/K5fZj0aPA==}
+  electron-to-chromium@1.5.417:
+    resolution: {integrity: sha512-4T+DTDWuMPM4aHlHwWdAVCVWwp7LDilnhzkj+c/Lbj91XSQrLuOmZSLtS9Q4iIqjlPUbPOnC624zDVVHCHaolQ==}
 
   emittery@0.13.1:
     resolution: {integrity: sha512-DeWwawk6r5yR9jFgnDKYt4sLS0LmHJJi3ZOnb5/JdbYwj3nW+FxQnHIjhBKz8YLC7oRNPVM9NQ47I3CVx34eqQ==}
@@ -2038,8 +2038,8 @@ packages:
   fastestsmallesttextencoderdecoder@1.0.22:
     resolution: {integrity: sha512-Pb8d48e+oIuY4MaM64Cd7OW1gt4nxCHs7/ddPPZ/Ic3sg8yVGM7O9wDvZ7us6ScaUupzM+pfBolwtYhN1IxBIw==}
 
-  fastq@1.20.2:
-    resolution: {integrity: sha512-UpGiiODyCGprM8EPP6JodP6jC9Rws6TCuiDOD+nn0CJhR8guI3g/ozo4ugL0vJ+Yz1UtJuuRPqvQuybVOF1VQA==}
+  fastq@1.20.3:
+    resolution: {integrity: sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw==}
 
   fb-watchman@2.0.2:
     resolution: {integrity: sha512-p5161BqbuCaSnB8jIbzQHOlpgsPmK5rJVDfDKO91Axs5NC1uu3HRQm6wt9cd9/+GtQQIO53JdGXXoyDpTAsgYA==}
@@ -2191,8 +2191,8 @@ packages:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
     engines: {node: '>= 4'}
 
-  ignore@7.0.6:
-    resolution: {integrity: sha512-BAg6QkE8W+TuQLrrw0Ugr7HegXduRuuj8/ti2kSOc+jz1dmx8/WNcjr6XGnq5YpDWxFwwaavqD0+jIUOKelTsw==}
+  ignore@7.0.7:
+    resolution: {integrity: sha512-dML0wP6oak21rsNYCJpJB6O1BJIEwNpGrTw0URPfAk4hm0e3pRfCtzkfB6olBcXcVlU2rouCyz7lCyRB0OMVCA==}
     engines: {node: '>= 4'}
 
   import-fresh@3.3.1:
@@ -4033,7 +4033,7 @@ snapshots:
   '@nodelib/fs.walk@1.2.8':
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
-      fastq: 1.20.2
+      fastq: 1.20.3
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -4197,29 +4197,29 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
-  '@solana/codecs-core@7.1.1(typescript@5.9.3)':
+  '@solana/codecs-core@8.1.0(typescript@5.9.3)':
     dependencies:
-      '@solana/errors': 7.1.1(typescript@5.9.3)
+      '@solana/errors': 8.1.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
 
-  '@solana/codecs-numbers@7.1.1(typescript@5.9.3)':
+  '@solana/codecs-numbers@8.1.0(typescript@5.9.3)':
     dependencies:
-      '@solana/codecs-core': 7.1.1(typescript@5.9.3)
-      '@solana/errors': 7.1.1(typescript@5.9.3)
+      '@solana/codecs-core': 8.1.0(typescript@5.9.3)
+      '@solana/errors': 8.1.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
 
-  '@solana/codecs-strings@7.1.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)':
+  '@solana/codecs-strings@8.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)':
     dependencies:
-      '@solana/codecs-core': 7.1.1(typescript@5.9.3)
-      '@solana/codecs-numbers': 7.1.1(typescript@5.9.3)
-      '@solana/errors': 7.1.1(typescript@5.9.3)
+      '@solana/codecs-core': 8.1.0(typescript@5.9.3)
+      '@solana/codecs-numbers': 8.1.0(typescript@5.9.3)
+      '@solana/errors': 8.1.0(typescript@5.9.3)
     optionalDependencies:
       fastestsmallesttextencoderdecoder: 1.0.22
       typescript: 5.9.3
 
-  '@solana/errors@7.1.1(typescript@5.9.3)':
+  '@solana/errors@8.1.0(typescript@5.9.3)':
     dependencies:
       chalk: 5.6.2
       commander: 15.0.0
@@ -4340,7 +4340,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.43.0
       eslint: 9.39.1
       graphemer: 1.4.0
-      ignore: 7.0.6
+      ignore: 7.0.7
       natural-compare: 1.4.0
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -4784,7 +4784,7 @@ snapshots:
     dependencies:
       baseline-browser-mapping: 2.11.20
       caniuse-lite: 1.0.30001810
-      electron-to-chromium: 1.5.416
+      electron-to-chromium: 1.5.417
       node-releases: 2.0.54
       update-browserslist-db: 1.3.2(browserslist@4.28.8)
 
@@ -4917,7 +4917,7 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  electron-to-chromium@1.5.416: {}
+  electron-to-chromium@1.5.417: {}
 
   emittery@0.13.1: {}
 
@@ -5183,7 +5183,7 @@ snapshots:
   fastestsmallesttextencoderdecoder@1.0.22:
     optional: true
 
-  fastq@1.20.2:
+  fastq@1.20.3:
     dependencies:
       reusify: 1.1.0
 
@@ -5346,7 +5346,7 @@ snapshots:
 
   ignore@5.3.2: {}
 
-  ignore@7.0.6: {}
+  ignore@7.0.7: {}
 
   import-fresh@3.3.1:
     dependencies:
