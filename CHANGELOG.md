@@ -1,5 +1,11 @@
 # @codama/renderers-rust-cpi
 
+## 0.1.4
+
+### Patch Changes
+
+- [#102](https://github.com/codama-idl/renderers-rust-cpi/pull/102) [`bbd7acd`](https://github.com/codama-idl/renderers-rust-cpi/commit/bbd7acd3eada8f4b9c3c86467980fd4d9aa6c564) Thanks [@lorisleiva](https://github.com/lorisleiva)! - Fail explicitly when rendering instructions with optional accounts instead of generating invalid Rust. Optional account strategies remain unsupported and require a dedicated implementation.
+
 ## 0.1.3
 
 ### Patch Changes
